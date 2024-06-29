@@ -1,6 +1,6 @@
 import 'react-tooltip/dist/react-tooltip.css'
 import React, { HTMLProps, useState } from 'react';
-// import { Tooltip } from 'react-tooltip'
+import { Tooltip } from 'react-tooltip'
 import { ApiState } from "@/app/page";
 
 export interface ResultVisualizerProps extends HTMLProps<HTMLDivElement> {
@@ -32,7 +32,7 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
 
   return (
     <div className={`${className} relative pt-2`} style={{ height }} {...rest}>
-      {/*<Tooltip id="cell-tooltip" delayShow={500}/>*/}
+      <Tooltip id="cell-tooltip" delayShow={500}/>
       <div
         className="absolute top-0 left-0 right-0 h-2 bg-gray-700 cursor-row-resize"
         onMouseDown={handleResize}
