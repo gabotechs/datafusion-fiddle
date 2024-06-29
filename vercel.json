@@ -1,7 +1,8 @@
 {
   "functions": {
     "api/**/*.rs": {
-      "runtime": "vercel-rust@4.0.7"
+      "runtime": "vercel-rust@4.0.7",
+      "excludeFiles": "{.next,*.cache,node_modules,public,app,target}/**"
     }
   }
 }
