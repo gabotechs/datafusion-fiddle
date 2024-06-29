@@ -15,19 +15,20 @@ export interface ResultVisualizerProps extends HTMLProps<HTMLDivElement> {
   state: ApiState;
 }
 
-export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisualizerProps) {
-  const [height, setHeight] = useState(200);
+export function ResultVisualizer({ state, className = '', ...rest }: ResultVisualizerProps) {
+  const [height, setHeight] = useState(300);
+  const [hoveredCell, setHoveredCell] = useState<{ content: string; x: number; y: number } | null>(null);
 
-  function handleResize (event: React.MouseEvent<HTMLDivElement>) {
+  function handleResize(event: React.MouseEvent<HTMLDivElement>) {
     const startY = event.clientY;
     const startHeight = height;
 
-    function handleMouseMove (event: MouseEvent) {
+    function handleMouseMove(event: MouseEvent) {
       const newHeight = startHeight - (event.clientY - startY);
       setHeight(newHeight);
     }
 
-    function handleMouseUp () {
+    function handleMouseUp() {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     }
@@ -36,17 +37,31 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
     document.addEventListener('mouseup', handleMouseUp);
   }
 
+  function handleCellMouseEnter(event: React.MouseEvent<HTMLTableCellElement>, content: string) {
+    const timer = setTimeout(() => {
+      const { left, top } = event.currentTarget.getBoundingClientRect();
+      setHoveredCell({ content, x: left, y: top });
+    }, 2000);
 
-  function renderCellContent (content: string) {
+    event.currentTarget.setAttribute('data-timer', timer.toString());
+  }
+
+  function handleCellMouseLeave(event: React.MouseEvent<HTMLTableCellElement>) {
+    const timer = parseInt(event.currentTarget.getAttribute('data-timer') || '');
+    clearTimeout(timer);
+    setHoveredCell(null);
+  }
+
+  function renderCellContent(content: string) {
     return content.split('\n').map((line, index, arr) => (
       <React.Fragment key={index}>
         {line}
-        {index < arr.length - 1 && <br/>}
+        {index < arr.length - 1 && <br />}
       </React.Fragment>
-    ))
+    ));
   }
 
-  if (state.type === 'nothing') return null
+  if (state.type === 'nothing') return null;
 
   return (
     <div className={`${className} relative pt-2`} style={{ height }} {...rest}>
@@ -70,7 +85,7 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
             <thead>
             <tr>
               {state.result.columns.map(([name, type], index) => (
-                <th key={index} className="px-4 py-2 bg-gray-800 text-left whitespace-pre-wrap">
+                <th key={index} className="px-4 py-2 bg-gray-800 text-left whitespace-nowrap overflow-hidden text-overflow-ellipsis">
                   {name} ({type})
                 </th>
               ))}
@@ -80,7 +95,12 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
             {state.result.rows.map((row, rowIndex) => (
               <tr key={rowIndex} className={rowIndex % 2 === 0 ? 'bg-gray-900' : 'bg-gray-800'}>
                 {row.map((cell, cellIndex) => (
-                  <td key={cellIndex} className="px-4 py-2 whitespace-pre-wrap">
+                  <td
+                    key={cellIndex}
+                    className="px-4 py-2 whitespace-nowrap overflow-hidden text-overflow-ellipsis"
+                    onMouseEnter={(event) => handleCellMouseEnter(event, cell)}
+                    onMouseLeave={handleCellMouseLeave}
+                  >
                     {renderCellContent(cell)}
                   </td>
                 ))}
@@ -90,6 +110,14 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
           </table>
         )}
       </div>
+      {hoveredCell && (
+        <div
+          className="absolute bg-gray-800 text-white p-2 rounded shadow-md"
+          style={{ left: hoveredCell.x, top: hoveredCell.y }}
+        >
+          {hoveredCell.content}
+        </div>
+      )}
     </div>
   );
 }

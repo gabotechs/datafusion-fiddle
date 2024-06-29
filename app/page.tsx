@@ -2,14 +2,14 @@
 
 import Image from "next/image";
 import React, { useState } from "react";
-import { Editor } from "@monaco-editor/react";
 
 import { executeStatements, SqlResponse } from "@/app/api";
 import { PlayButton } from "@/components/PlayButton";
 import { INIT_DDL, INIT_SELECT } from "@/app/constants";
 import { ResultVisualizer } from "@/app/ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
-import { LoadingSpinner } from "@/components/LoadingSpinner";
+import { SqlEditor } from "@/app/SqlEditor";
+import { useSubmit } from "@/app/useSubmit";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -34,6 +34,8 @@ export default function Home () {
       .catch((err) => setApiState({ type: 'error', message: err.toString() }))
   }
 
+  useSubmit(execute)
+
   return (
     <main className="h-screen w-full flex flex-col">
       <div className="p-2 flex flex-row items-center">
@@ -56,23 +58,17 @@ export default function Home () {
         />
       </div>
       <div className={"flex flex-row flex-grow min-h-0"}>
-        <Editor
+        <SqlEditor
           height={'100%'}
           width={'50%'}
-          theme={'vs-dark'}
-          language={'sql'}
           value={ddlStatement}
-          loading={<LoadingSpinner/>}
-          onChange={(e) => setDdlStatement(e ?? '')}
+          onChange={setDdlStatement}
         />
-        <Editor
+        <SqlEditor
           height={'100%'}
           width={'50%'}
-          theme={'vs-dark'}
-          language={'sql'}
           value={selectStatement}
-          loading={<LoadingSpinner/>}
-          onChange={(e) => setSelectStatement(e ?? '')}
+          onChange={setSelectStatement}
         />
       </div>
       <ResultVisualizer
