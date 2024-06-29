@@ -18,7 +18,17 @@ const nextConfig = {
         }
 
         return rewrites
-    }
+    },
+    // https://github.com/orgs/vercel/discussions/103#discussioncomment-6356642
+    experimental: {
+        outputFileTracingExcludes: {
+            '*': [
+                'node_modules/@swc/core-linux-x64-gnu',
+                'node_modules/@swc/core-linux-x64-musl',
+                'node_modules/@esbuild/linux-x64',
+            ],
+        },
+    },
 };
 
 export default nextConfig;
