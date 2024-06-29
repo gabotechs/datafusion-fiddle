@@ -1,4 +1,4 @@
-// import 'react-tooltip/dist/react-tooltip.css'
+import 'react-tooltip/dist/react-tooltip.css'
 import React, { HTMLProps, useState } from 'react';
 // import { Tooltip } from 'react-tooltip'
 import { ApiState } from "@/app/page";
