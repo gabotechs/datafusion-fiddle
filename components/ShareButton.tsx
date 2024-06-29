@@ -6,20 +6,16 @@ interface ShareButtonProps extends Omit<HTMLProps<HTMLDivElement>, 'onClick'> {
 }
 
 export const ShareButton: React.FC<ShareButtonProps> = ({ getUrl, className='', ...props }: ShareButtonProps) => {
-  const [showFeedback, setShowFeedback] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false)
 
   function handleClick() {
     const url = getUrl();
     navigator.clipboard.writeText(url).then(
       () => {
-        setShowFeedback(true);
-        setTimeout(() => {
-          setShowFeedback(false);
-        }, 2000);
+        setShowFeedback(true)
+        setTimeout(() => setShowFeedback(false), 2000)
       },
-      (err) => {
-        console.error('Failed to copy URL:', err);
-      }
+      (err) =>  console.error('Failed to copy URL:', err)
     )
   }
 
