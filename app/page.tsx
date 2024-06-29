@@ -38,24 +38,27 @@ export default function Home () {
 
   return (
     <main className="h-screen w-full flex flex-col">
-      <div className="p-2 flex flex-row items-center">
-        <Image
-          className={'mr-4'}
-          alt={'df-logo'}
-          src={'/df-logo.png'}
-          width={42}
-          height={42}
-        />
-        <span className={'text-xl'}> DataFusion Fiddle </span>
-        <PlayButton
-          className={'ml-12'}
-          onClick={execute}
-          loading={apiState.type === 'loading'}
-        />
-        <ShareButton
-          className={'ml-8'}
-          getUrl={() => dumpStatementsIntoUrl(ddlStatement, selectStatement)}
-        />
+      <div className="p-2 flex flex-row justify-between items-center">
+        <div className="p-2 flex flex-row items-center">
+          <Image
+            className={'mr-4'}
+            alt={'df-logo'}
+            src={'/df-logo.png'}
+            width={42}
+            height={42}
+          />
+          <span className={'text-xl'}> DataFusion Fiddle </span>
+          <PlayButton
+            className={'ml-12'}
+            onClick={execute}
+            loading={apiState.type === 'loading'}
+          />
+          <ShareButton
+            className={'ml-8'}
+            getUrl={() => dumpStatementsIntoUrl(ddlStatement, selectStatement)}
+          />
+        </div>
+        <span className={'text-sm text-gray-500 mr-4'}>DataFusion version 39.0.0</span>
       </div>
       <div className={"flex flex-row flex-grow min-h-0"}>
         <SqlEditor

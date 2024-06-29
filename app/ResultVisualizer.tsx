@@ -1,4 +1,6 @@
+import 'react-tooltip/dist/react-tooltip.css'
 import React, { HTMLProps, useState } from 'react';
+import { Tooltip } from 'react-tooltip'
 
 export interface SqlResponse {
   columns: Array<[string, string]>;
@@ -17,7 +19,6 @@ export interface ResultVisualizerProps extends HTMLProps<HTMLDivElement> {
 
 export function ResultVisualizer({ state, className = '', ...rest }: ResultVisualizerProps) {
   const [height, setHeight] = useState(300);
-  const [hoveredCell, setHoveredCell] = useState<{ content: string; x: number; y: number } | null>(null);
 
   function handleResize(event: React.MouseEvent<HTMLDivElement>) {
     const startY = event.clientY;
@@ -37,25 +38,10 @@ export function ResultVisualizer({ state, className = '', ...rest }: ResultVisua
     document.addEventListener('mouseup', handleMouseUp);
   }
 
-  function handleCellMouseEnter(event: React.MouseEvent<HTMLTableCellElement>, content: string) {
-    const timer = setTimeout(() => {
-      const { left, top } = event.currentTarget.getBoundingClientRect();
-      setHoveredCell({ content, x: left, y: top });
-    }, 2000);
-
-    event.currentTarget.setAttribute('data-timer', timer.toString());
-  }
-
-  function handleCellMouseLeave(event: React.MouseEvent<HTMLTableCellElement>) {
-    const timer = parseInt(event.currentTarget.getAttribute('data-timer') || '');
-    clearTimeout(timer);
-    setHoveredCell(null);
-  }
-
   function renderCellContent(content: string) {
     return content.split('\n').map((line, index, arr) => (
       <React.Fragment key={index}>
-        {line}
+        <span data-tooltip-id="cell-tooltip" data-tooltip-content={line}>{line}</span>
         {index < arr.length - 1 && <br />}
       </React.Fragment>
     ));
@@ -65,6 +51,7 @@ export function ResultVisualizer({ state, className = '', ...rest }: ResultVisua
 
   return (
     <div className={`${className} relative pt-2`} style={{ height }} {...rest}>
+      <Tooltip id="cell-tooltip" delayShow={500}  />
       <div
         className="absolute top-0 left-0 right-0 h-2 bg-gray-700 cursor-row-resize"
         onMouseDown={handleResize}
@@ -76,7 +63,7 @@ export function ResultVisualizer({ state, className = '', ...rest }: ResultVisua
           </div>
         )}
         {state.type === 'error' && (
-          <div className="flex items-center justify-center h-full text-red-500">
+          <div className="flex items-center justify-center h-full text-red-500 text-center text-xl mx-12">
             {state.message}
           </div>
         )}
@@ -98,8 +85,6 @@ export function ResultVisualizer({ state, className = '', ...rest }: ResultVisua
                   <td
                     key={cellIndex}
                     className="px-4 py-2 whitespace-nowrap overflow-hidden text-overflow-ellipsis"
-                    onMouseEnter={(event) => handleCellMouseEnter(event, cell)}
-                    onMouseLeave={handleCellMouseLeave}
                   >
                     {renderCellContent(cell)}
                   </td>
@@ -110,14 +95,6 @@ export function ResultVisualizer({ state, className = '', ...rest }: ResultVisua
           </table>
         )}
       </div>
-      {hoveredCell && (
-        <div
-          className="absolute bg-gray-800 text-white p-2 rounded shadow-md"
-          style={{ left: hoveredCell.x, top: hoveredCell.y }}
-        >
-          {hoveredCell.content}
-        </div>
-      )}
     </div>
   );
 }
