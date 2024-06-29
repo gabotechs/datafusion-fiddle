@@ -23,11 +23,24 @@ pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
 
     let res = match execute_statements(req.stmts).await {
         Ok(res) => res,
-        Err(err) => return throw_error(&err.to_string(), Some(Box::new(err)), StatusCode::BAD_REQUEST),
+        Err(err) => {
+            return throw_error(
+                &err.to_string(),
+                Some(Box::new(err)),
+                StatusCode::BAD_REQUEST,
+            )
+        }
     };
 
     Ok(Response::builder()
         .status(StatusCode::OK)
+        .header(
+            "Cache-Control",
+            format!(
+                "public, max-age=0, must-revalidate, s-maxage={s_maxage}",
+                s_maxage = 60 * 60
+            ),
+        )
         .header("Content-Type", "application/json")
         .body(json!(res).to_string().into())?)
 }
