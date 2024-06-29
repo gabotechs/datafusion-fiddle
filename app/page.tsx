@@ -1,23 +1,27 @@
 'use client'
 
 import Image from "next/image";
-import { HTMLProps, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Editor } from "@monaco-editor/react";
 
 import { executeStatements, SqlResponse } from "@/app/api";
 import { PlayButton } from "@/components/PlayButton";
 import { INIT_DDL, INIT_SELECT } from "@/app/constants";
+import { ResultVisualizer } from "@/app/ResultVisualizer";
+import { ShareButton } from "@/components/ShareButton";
 
-type ApiState = { type: 'nothing' } | { type: 'loading' } | { type: 'error', message: string } | {
-  type: 'result',
-  result: SqlResponse
-}
+export type ApiState =
+  { type: 'nothing' } |
+  { type: 'loading' } |
+  { type: 'error', message: string } |
+  { type: 'result', result: SqlResponse }
+
+const [initDdl = INIT_DDL, initSelect = INIT_SELECT] = getStatementsFromUrl()
 
 export default function Home () {
   const [apiState, setApiState] = useState<ApiState>({ type: 'nothing' })
-  const [ddlStatement, setDdlStatement] = useState(INIT_DDL)
-  const [selectStatement, setSelectStatement] = useState(INIT_SELECT)
-
+  const [ddlStatement, setDdlStatement] = useState(initDdl)
+  const [selectStatement, setSelectStatement] = useState(initSelect)
 
   function execute () {
     setApiState({ type: 'loading' })
@@ -39,13 +43,15 @@ export default function Home () {
           width={42}
           height={42}
         />
-        <span className={'text-xl'}>
-          Datafusion Fiddle
-        </span>
+        <span className={'text-xl'}> DataFusion Fiddle </span>
         <PlayButton
           className={'ml-12'}
           onClick={execute}
           loading={apiState.type === 'loading'}
+        />
+        <ShareButton
+          className={'ml-8'}
+          getUrl={() => dumpStatementsIntoUrl(ddlStatement, selectStatement)}
         />
       </div>
       <div className={"flex flex-row flex-grow min-h-0"}>
@@ -74,18 +80,28 @@ export default function Home () {
   );
 }
 
-interface ResultVisualizerProps extends HTMLProps<HTMLDivElement> {
-  state: ApiState
+function dumpStatementsIntoUrl (ddl: string, select: string): string {
+  const q = btoa(JSON.stringify({ ddl, select }))
+  return window.location.origin + `?q=${q}`
 }
 
-function ResultVisualizer ({ state, className = '', ...rest }: ResultVisualizerProps) {
-  if (state.type === 'nothing') return null
-
-  return (
-    <div className={`${className}`} {...rest}>
-      {state.type === 'loading' && <span>Loading...</span>}
-      {state.type === 'error' && <span>{state.message}</span>}
-      {state.type === 'result' && <div>{JSON.stringify(state.result, undefined, 2)}</div>}
-    </div>
-  )
+function getStatementsFromUrl (): [string | undefined, string | undefined] {
+  const urlParams = new URLSearchParams(window.location.search)
+  const q = urlParams.get('q')
+  if (q == null) return [undefined, undefined]
+  try {
+    const parsed = JSON.parse(atob(q))
+    if (
+      'ddl' in parsed &&
+      'select' in parsed &&
+      typeof parsed.ddl === 'string' &&
+      typeof parsed.select === 'string'
+    ) {
+      return [parsed.ddl, parsed.select]
+    }
+  } catch (error) {
+    // this is fine
+  }
+  return [undefined, undefined]
 }
+

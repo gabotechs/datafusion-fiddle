@@ -6,8 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Datafusion fiddle",
-  description: "Web app for testing datafusion SQL queries",
+  title: "DataFusion fiddle",
+  description: "Web app for testing DataFusion SQL queries",
 };
 
 export default function RootLayout({
