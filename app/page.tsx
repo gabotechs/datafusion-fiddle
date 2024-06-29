@@ -1,7 +1,7 @@
 'use client'
 
 import Image from "next/image";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Editor } from "@monaco-editor/react";
 
 import { executeStatements, SqlResponse } from "@/app/api";
@@ -9,6 +9,7 @@ import { PlayButton } from "@/components/PlayButton";
 import { INIT_DDL, INIT_SELECT } from "@/app/constants";
 import { ResultVisualizer } from "@/app/ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -61,6 +62,7 @@ export default function Home () {
           theme={'vs-dark'}
           language={'sql'}
           value={ddlStatement}
+          loading={<LoadingSpinner/>}
           onChange={(e) => setDdlStatement(e ?? '')}
         />
         <Editor
@@ -69,11 +71,12 @@ export default function Home () {
           theme={'vs-dark'}
           language={'sql'}
           value={selectStatement}
+          loading={<LoadingSpinner/>}
           onChange={(e) => setSelectStatement(e ?? '')}
         />
       </div>
       <ResultVisualizer
-        className={`overflow-auto p-4`}
+        className={`overflow-auto`}
         state={apiState}
       />
     </main>
@@ -86,10 +89,10 @@ function dumpStatementsIntoUrl (ddl: string, select: string): string {
 }
 
 function getStatementsFromUrl (): [string | undefined, string | undefined] {
-  const urlParams = new URLSearchParams(window.location.search)
-  const q = urlParams.get('q')
-  if (q == null) return [undefined, undefined]
   try {
+    const urlParams = new URLSearchParams(window.location.search)
+    const q = urlParams.get('q')
+    if (q == null) return [undefined, undefined]
     const parsed = JSON.parse(atob(q))
     if (
       'ddl' in parsed &&
