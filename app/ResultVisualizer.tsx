@@ -1,17 +1,7 @@
 import 'react-tooltip/dist/react-tooltip.css'
 import React, { HTMLProps, useState } from 'react';
 import { Tooltip } from 'react-tooltip'
-
-export interface SqlResponse {
-  columns: Array<[string, string]>;
-  rows: Array<Array<string>>;
-}
-
-export type ApiState =
-  | { type: 'nothing' }
-  | { type: 'loading' }
-  | { type: 'error'; message: string }
-  | { type: 'result'; result: SqlResponse };
+import { ApiState } from "@/app/page";
 
 export interface ResultVisualizerProps extends HTMLProps<HTMLDivElement> {
   state: ApiState;
@@ -59,7 +49,7 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
           </div>
         )}
         {state.type === 'result' && (
-          <table className="table-fixed w-full text-white">
+          <table className="table-auto w-full text-white">
             <thead>
             <tr>
               {state.result.columns.map(([name, type], index) => (
@@ -100,16 +90,4 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
       </div>
     </div>
   );
-}
-
-function nCharsAtStart (str: string, char: string): number {
-  let i = 0
-  for (const c of str) {
-    if (c === char) {
-      i++
-    } else {
-      break
-    }
-  }
-  return i
 }
