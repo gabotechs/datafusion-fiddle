@@ -20,7 +20,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ getUrl, className='', 
       (err) => {
         console.error('Failed to copy URL:', err);
       }
-    );
+    )
   }
 
   return (
