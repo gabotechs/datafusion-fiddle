@@ -15,7 +15,7 @@ CREATE TABLE employees (
 
 INSERT INTO employees (id, first_name, last_name, email, phone, hire_date, job_title, department, salary)
 VALUES
-(1, 'John', 'Doe', 'john.doe@company.com', '123-456-7890', '2020-01-01', 'Manager', 'Sales', 75000.00),
+  (1, 'John', 'Doe', 'john.doe@company.com', '123-456-7890', '2020-01-01', 'Manager', 'Sales', 75000.00),
   (2, 'Jane', 'Smith', 'jane.smith@company.com', '987-654-3210', '2019-05-15', 'Engineer', 'Engineering', 85000.00),
   (3, 'Michael', 'Johnson', 'michael.johnson@company.com', '456-789-0123', '2021-03-10', 'Analyst', 'Finance', 65000.00),
   (4, 'Emily', 'Brown', 'emily.brown@company.com', '321-654-9870', '2018-11-01', 'Designer', 'Marketing', 60000.00),
