@@ -10,6 +10,8 @@ import { ResultVisualizer } from "@/app/ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
 import { SqlEditor } from "@/app/SqlEditor";
 import { useSubmit } from "@/app/useSubmit";
+import Link from "next/link";
+import { GithubIcon } from "@/components/GithubIcon";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -58,7 +60,16 @@ export default function Home () {
             getUrl={() => dumpStatementsIntoUrl(ddlStatement, selectStatement)}
           />
         </div>
-        <span className={'text-sm text-gray-500 mr-4'}>DataFusion version 39.0.0</span>
+        <div className={"flex flex-row items-center"}>
+          <Link
+            className={'mr-4'}
+            href={'https://github.com/gabotechs/datafusion-fiddle'}
+            target={'_blank'}
+          >
+            <GithubIcon />
+          </Link>
+          <span className={'text-sm text-gray-500 mr-4'}>DataFusion version 39.0.0</span>
+        </div>
       </div>
       <div className={"flex flex-row flex-grow min-h-0"}>
         <SqlEditor

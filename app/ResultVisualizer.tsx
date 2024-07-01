@@ -2,6 +2,7 @@ import 'react-tooltip/dist/react-tooltip.css'
 import React, { HTMLProps, useState } from 'react';
 import { Tooltip } from 'react-tooltip'
 import { ApiState } from "@/app/page";
+import { LoadingSpinner } from "@/components/LoadingSpinner";
 
 export interface ResultVisualizerProps extends HTMLProps<HTMLDivElement> {
   state: ApiState;
@@ -39,9 +40,7 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
       ></div>
       <div className="h-full overflow-auto">
         {state.type === 'loading' && (
-          <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-gray-400"></div>
-          </div>
+          <LoadingSpinner/>
         )}
         {state.type === 'error' && (
           <div className="flex items-center justify-center h-full text-red-500 text-center text-xl mx-12">
