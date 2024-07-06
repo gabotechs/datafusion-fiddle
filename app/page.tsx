@@ -87,7 +87,7 @@ export default function Home () {
             href={'https://github.com/gabotechs/datafusion-fiddle'}
             target={'_blank'}
           >
-            <GithubIcon />
+            <GithubIcon/>
           </Link>
           <span className={'text-sm text-gray-500 mr-4'}>DataFusion version 39.0.0</span>
         </div>
@@ -95,7 +95,7 @@ export default function Home () {
       <div className={"flex flex-row flex-grow min-h-0"}>
         <SqlEditor
           height={'100%'}
-          width={screenWidth/2 - 2 - midBarPosition}
+          width={screenWidth ? (screenWidth / 2 - 2 - midBarPosition) : '50%'}
           value={ddlStatement}
           onChange={setDdlStatement}
         />
@@ -105,7 +105,7 @@ export default function Home () {
         />
         <SqlEditor
           height={'100%'}
-          width={screenWidth/2 - 2 + midBarPosition}
+          width={screenWidth ? (screenWidth / 2 - 2 + midBarPosition) : '50%'}
           value={selectStatement}
           onChange={setSelectStatement}
         />
