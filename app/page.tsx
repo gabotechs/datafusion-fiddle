@@ -12,6 +12,7 @@ import { SqlEditor } from "@/app/SqlEditor";
 import { useSubmit } from "@/app/useSubmit";
 import Link from "next/link";
 import { GithubIcon } from "@/components/GithubIcon";
+import { useScreenWidth } from "@/app/useScreenWidth";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -34,6 +35,26 @@ export default function Home () {
     ])
       .then((result) => setApiState({ type: 'result', result }))
       .catch((err) => setApiState({ type: 'error', message: err.toString() }))
+  }
+
+  const screenWidth = useScreenWidth()
+  const [midBarPosition, setMidBarPosition] = useState(0);
+
+  function handleResize (event: React.MouseEvent<HTMLDivElement>) {
+    const startX = event.clientX;
+    const startMidBarPosition = midBarPosition;
+
+    function handleMouseMove (event: MouseEvent) {
+      setMidBarPosition(startMidBarPosition - (event.clientX - startX));
+    }
+
+    function handleMouseUp () {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    }
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
   }
 
   useSubmit(execute)
@@ -74,13 +95,17 @@ export default function Home () {
       <div className={"flex flex-row flex-grow min-h-0"}>
         <SqlEditor
           height={'100%'}
-          width={'50%'}
+          width={screenWidth/2 - 2 - midBarPosition}
           value={ddlStatement}
           onChange={setDdlStatement}
         />
+        <div
+          className="h-full w-2 bg-gray-700 cursor-col-resize"
+          onMouseDown={handleResize}
+        />
         <SqlEditor
           height={'100%'}
-          width={'50%'}
+          width={screenWidth/2 - 2 + midBarPosition}
           value={selectStatement}
           onChange={setSelectStatement}
         />

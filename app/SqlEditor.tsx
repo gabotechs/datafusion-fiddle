@@ -26,7 +26,7 @@ export function SqlEditor({onChange, ...props}: SqlEditorProps) {
     language={'sql'}
     loading={<LoadingSpinner/>}
     onChange={(e) => onChange(e ?? '')}
-    options={{ fontSize: 14 }}
+    options={{ fontSize: 14, minimap: { enabled: false }  }}
     {...props}
   />
 }
