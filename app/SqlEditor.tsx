@@ -9,6 +9,11 @@ export interface SqlEditorProps extends Omit<EditorProps, 'onChange'> {
 }
 
 export function SqlEditor({ onChange, onSubmit, ...props }: SqlEditorProps) {
+  // Need to pass the onSubmit callback by reference, otherwise, only
+  // the first onSubmit value ever passed will be caputred by the onMount closure.
+  const onSubmitRef = React.useRef(onSubmit)
+  onSubmitRef.current = onSubmit
+
   return (
     <Editor
       onMount={(editor, monaco) => {
@@ -34,7 +39,7 @@ export function SqlEditor({ onChange, onSubmit, ...props }: SqlEditorProps) {
             monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
           ],
           run: () => {
-            onSubmit?.();
+            onSubmitRef.current?.();
           },
         });
       }}
