@@ -98,6 +98,7 @@ export default function Home () {
           width={screenWidth ? (screenWidth / 2 - 2 - midBarPosition) : '50%'}
           value={ddlStatement}
           onChange={setDdlStatement}
+          onSubmit={execute}
         />
         <div
           className="h-full w-2 bg-gray-700 cursor-col-resize"
@@ -108,6 +109,7 @@ export default function Home () {
           width={screenWidth ? (screenWidth / 2 - 2 + midBarPosition) : '50%'}
           value={selectStatement}
           onChange={setSelectStatement}
+          onSubmit={execute}
         />
       </div>
       <ResultVisualizer
