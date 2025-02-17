@@ -89,7 +89,7 @@ export default function Home () {
           >
             <GithubIcon/>
           </Link>
-          <span className={'text-sm text-gray-500 mr-4'}>DataFusion version 44.0.0</span>
+          <span className={'text-sm text-gray-500 mr-4'}>DataFusion version 45.0.0</span>
         </div>
       </div>
       <div className={"flex flex-row flex-grow min-h-0"}>

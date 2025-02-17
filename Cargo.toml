@@ -8,7 +8,7 @@ tokio = { version = "1", features = ["macros"] }
 serde_json = { version = "1", features = ["raw_value"] }
 # Documentation: https://docs.rs/vercel_runtime/latest/vercel_runtime
 vercel_runtime = { version = "1.1.4" }
-datafusion = { version = "44.0.0" }
+datafusion = { version = "45.0.0" }
 serde = { version = "1.0.203", features = ["derive"] }
 
 # Each handler has to be specified as [[bin]]
