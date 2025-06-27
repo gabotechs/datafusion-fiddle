@@ -26,7 +26,7 @@ monaco.editor.defineTheme('sql-dark', vsPlusTheme.darkThemeData);
 monaco.editor.setTheme('sql-dark');
 
 const tableRe = /\bcreate\s+table\s+([a-zA-Z_][a-zA-Z0-9_]+)\b/gi
-const columnRe = /^\s+([a-zA-Z_][a-zA-Z0-9_]+)\s+/gm
+const columnRe = /^ +([a-zA-Z_][a-zA-Z0-9_]+)\s+/gm
 
 setupLanguageFeatures(LanguageIdEnum.PG, {
   completionItems: {
@@ -62,11 +62,10 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
             .map(v => [...v.matchAll(re)])
             .map(v => v.map(match => match[1]).filter(Boolean))
             .flatMap(v => v)
-            .filter(v => !keywords.includes(v))
             .flatMap(v => ({
               label: v,
-              kind: languages.CompletionItemKind.Text,
-              detail: 'word suggestion',
+              kind: languages.CompletionItemKind.Class,
+              detail: item.syntaxContextType+' suggestion',
               sortText: '1' + v
             }))
 
