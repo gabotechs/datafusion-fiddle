@@ -1,5 +1,5 @@
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import React from "react";
+import React, { CSSProperties } from "react";
 import { Editor } from "@monaco-editor/react";
 import { LanguageIdEnum, setupLanguageFeatures, vsPlusTheme } from 'monaco-sql-languages';
 
@@ -12,8 +12,8 @@ self.MonacoEnvironment = {
 };
 
 export interface SqlEditorProps {
-  height: number;
-  width: number;
+  height: CSSProperties['height'];
+  width: CSSProperties['width'];
   value: string;
   onChange: (code: string) => void;
   // Optional: add a handler for Cmd+Enter if needed

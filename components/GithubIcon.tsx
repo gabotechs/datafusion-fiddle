@@ -1,9 +1,9 @@
 export function GithubIcon () {
   return <svg
-    height="32"
+    height="28"
     aria-hidden="true"
     viewBox="0 0 16 16"
-    width="32"
+    width="28"
     data-view-component="true"
   >
     <path

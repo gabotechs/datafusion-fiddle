@@ -7,7 +7,7 @@ export interface PlayButtonProps extends HTMLProps<HTMLButtonElement> {
 export function PlayButton ({ className = '', loading, disabled, ...props }: PlayButtonProps) {
   return (
     <button
-      className={`w-12 h-12 bg-green-500 hover:bg-green-600 rounded flex items-center justify-center focus:outline-none ${className}`}
+      className={`w-8 h-8 rounded flex items-center justify-center focus:outline-none cursor-pointer ${className}`}
       {...props}
       disabled={loading || disabled}
       type="button"
@@ -15,7 +15,7 @@ export function PlayButton ({ className = '', loading, disabled, ...props }: Pla
       {
         loading
           ? <svg
-            className="w-6 h-6 text-white animate-spin"
+            className="w-6 h-6 animate-spin text-text-primary"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -35,7 +35,7 @@ export function PlayButton ({ className = '', loading, disabled, ...props }: Pla
             />
           </svg>
           : <svg
-            className="w-6 h-6 text-white"
+            className="w-6 h-6 cursor-pointer text-action-success"
             fill="currentColor"
             viewBox="0 0 20 20"
           >

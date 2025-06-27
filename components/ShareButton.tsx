@@ -23,14 +23,14 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ getUrl, className='', 
     <div className={`relative inline-block ${className}`} {...props}>
       <div className={'h-1'}/>
       <button
-        className="focus:outline-none "
+        className="focus:outline-none cursor-pointer"
         onClick={handleClick}
         type="button"
       >
         {showFeedback ? (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-white"
+            className="h-6 w-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -40,7 +40,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({ getUrl, className='', 
         ) : (
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-white"
+            className="h-6 w-6 cursor-pointer"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"

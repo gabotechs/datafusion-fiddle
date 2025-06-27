@@ -9,6 +9,7 @@ import { SqlEditor } from "./SqlEditor";
 import { useSubmit } from "./useSubmit";
 import { GithubIcon } from "@/components/GithubIcon";
 import { useScreenWidth } from "./useScreenWidth";
+import { DragHandle } from "@/components/DragHandle";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -36,44 +37,26 @@ export default function App () {
   const screenWidth = useScreenWidth()
   const [midBarPosition, setMidBarPosition] = useState(0);
 
-  function handleResize (event: React.MouseEvent<HTMLDivElement>) {
-    const startX = event.clientX;
-    const startMidBarPosition = midBarPosition;
-
-    function handleMouseMove (event: MouseEvent) {
-      setMidBarPosition(startMidBarPosition - (event.clientX - startX));
-    }
-
-    function handleMouseUp () {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    }
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }
-
   useSubmit(execute)
 
   return (
     <main className="h-screen w-full flex flex-col">
-      <div className="p-2 flex flex-row justify-between items-center">
-        <div className="p-2 flex flex-row items-center">
+      <div className="p-1 flex flex-row justify-between items-center z-10 shadow-xl bg-primary-surface">
+        <div className="px-1 flex flex-row items-center ">
           <img
-            className={'mr-4'}
             alt={'df-logo'}
             src={'/df-logo.png'}
-            width={42}
-            height={42}
+            width={28}
+            height={28}
           />
-          <span className={'text-xl'}> DataFusion Fiddle </span>
+          <span className={'ml-4 text-xl text-text-primary'}> DataFusion Fiddle </span>
           <PlayButton
-            className={'ml-12'}
+            className={'ml-6'}
             onClick={execute}
             loading={apiState.type === 'loading'}
           />
           <ShareButton
-            className={'ml-8'}
+            className={'ml-4 text-text-primary'}
             getUrl={() => dumpStatementsIntoUrl(ddlStatement, selectStatement)}
           />
         </div>
@@ -86,7 +69,7 @@ export default function App () {
           >
             <GithubIcon/>
           </a>
-          <span className={'text-sm text-gray-500 mr-4'}>DataFusion version 48.0.0</span>
+          <span className={'text-sm text-text-secondary mr-4'}>DataFusion version 48.0.0</span>
         </div>
       </div>
       <div className={"flex flex-row flex-grow min-h-0"}>
@@ -97,10 +80,7 @@ export default function App () {
           onChange={setDdlStatement}
           onSubmit={execute}
         />
-        <div
-          className="h-full w-2 bg-gray-700 cursor-col-resize"
-          onMouseDown={handleResize}
-        />
+        <DragHandle onDrag={delta => setMidBarPosition(prev => prev - delta)} direction="horizontal"/>
         <SqlEditor
           height={'100%'}
           width={screenWidth ? (screenWidth / 2 - 2 + midBarPosition) : '50%'}

@@ -1,27 +1,51 @@
 @import "tailwindcss";
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+@theme {
+  --color-primary-surface: rgb(53, 53, 63);
+  --color-secondary-surface: rgb(37, 37, 45);
+  --color-text-primary: rgb(229 231 235);
+  --color-text-secondary: rgb(107 114 128);
+  --color-text-error: rgb(239 68 68);
+  --color-action-success: rgb(69, 175, 50);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start: rgb(34, 34, 38);
+  --background-end: rgb(27, 27, 30);
 }
+
 
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
       to bottom,
       transparent,
-      rgb(var(--background-end-rgb))
+      var(--background-end)
     )
-    rgb(var(--background-start-rgb));
+    var(--background-start);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
 }
 
 @layer utilities {
