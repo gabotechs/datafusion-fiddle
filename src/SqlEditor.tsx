@@ -35,6 +35,7 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
         return [];
       }
       const { keywords, syntax } = suggestions;
+      // keyword completions are always there.
       const keywordsCompletionItems: ICompletionItem[] = keywords.map((kw) => ({
         label: kw,
         kind: languages.CompletionItemKind.Keyword,
@@ -47,9 +48,11 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
       syntax.forEach((item) => {
         let re
         switch (item.syntaxContextType) {
+          // if we are suggesting for columns...
           case EntityContextType.COLUMN:
             re = columnRe;
             break;
+          // ...or for tables...
           case EntityContextType.CATALOG:
           case EntityContextType.DATABASE:
           case EntityContextType.TABLE:
@@ -57,6 +60,8 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
             break;
         }
         if (re) {
+          // do a very dummy parsing of the current active editors looking for CREATE TABLE
+          // statements and/or new lines with indented identifiers looking for column names.
           const words = monaco.editor.getEditors()
             .map(v => v.getValue())
             .map(v => [...v.matchAll(re)])
@@ -66,9 +71,11 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
               label: v,
               kind: languages.CompletionItemKind.Class,
               detail: item.syntaxContextType+' suggestion',
+              // top priority completion.
               sortText: '1' + v
             }))
 
+          // these gathered column/table names will be added to the completions.
           syntaxCompletionItems.push(...words);
         }
       });
