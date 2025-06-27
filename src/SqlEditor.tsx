@@ -1,6 +1,8 @@
-import { Editor, EditorProps } from "@monaco-editor/react";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import React from "react";
+import { EditorProps } from "@monaco-editor/react";
+import { LanguageIdEnum, setupLanguageFeatures, vsPlusTheme } from 'monaco-sql-languages';
+import { Editor } from "@monaco-editor/react"
 
 export interface SqlEditorProps extends Omit<EditorProps, 'onChange'> {
   onChange: (code: string) => void;
@@ -8,7 +10,7 @@ export interface SqlEditorProps extends Omit<EditorProps, 'onChange'> {
   onSubmit?: () => void;
 }
 
-export function SqlEditor({ onChange, onSubmit, ...props }: SqlEditorProps) {
+export function SqlEditor ({ onChange, onSubmit, ...props }: SqlEditorProps) {
   // Need to pass the onSubmit callback by reference, otherwise, only
   // the first onSubmit value ever passed will be caputred by the onMount closure.
   const onSubmitRef = React.useRef(onSubmit)
@@ -16,21 +18,17 @@ export function SqlEditor({ onChange, onSubmit, ...props }: SqlEditorProps) {
 
   return (
     <Editor
-      onMount={(editor, monaco) => {
-        // Define and set your custom theme.
-        monaco.editor.defineTheme("default", {
-          base: "vs-dark",
-          inherit: true,
-          rules: [
-            {
-              token: "string.sql",
-              // the default FF0000 is ugly AF.
-              foreground: "3D8327D6",
-            },
-          ],
-          colors: {},
+      onMount={async (editor, monaco) => {
+
+        monaco.editor.defineTheme('sql-dark', vsPlusTheme.darkThemeData);
+        monaco.editor.setTheme('sql-dark');
+
+        setupLanguageFeatures(LanguageIdEnum.PG, {
+          completionItems: {
+            enable: true,
+            triggerCharacters: [' ', '.'],
+          }
         });
-        monaco.editor.setTheme("default");
 
         editor.addAction({
           id: "execute-sql",
@@ -43,8 +41,8 @@ export function SqlEditor({ onChange, onSubmit, ...props }: SqlEditorProps) {
           },
         });
       }}
-      language="sql"
-      loading={<LoadingSpinner />}
+      language="pgsql"
+      loading={<LoadingSpinner/>}
       onChange={(e) => onChange(e ?? "")}
       options={{ fontSize: 14, minimap: { enabled: false } }}
       {...props}

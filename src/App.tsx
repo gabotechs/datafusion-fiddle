@@ -1,18 +1,14 @@
-'use client'
-
-import Image from "next/image";
 import React, { useState } from "react";
 
-import { executeStatements, SqlResponse } from "@/app/api";
+import { executeStatements, SqlResponse } from "./api";
 import { PlayButton } from "@/components/PlayButton";
-import { INIT_DDL, INIT_SELECT } from "@/app/constants";
-import { ResultVisualizer } from "@/app/ResultVisualizer";
+import { INIT_DDL, INIT_SELECT } from "./constants";
+import { ResultVisualizer } from "./ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
-import { SqlEditor } from "@/app/SqlEditor";
-import { useSubmit } from "@/app/useSubmit";
-import Link from "next/link";
+import { SqlEditor } from "./SqlEditor";
+import { useSubmit } from "./useSubmit";
 import { GithubIcon } from "@/components/GithubIcon";
-import { useScreenWidth } from "@/app/useScreenWidth";
+import { useScreenWidth } from "./useScreenWidth";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -22,7 +18,7 @@ export type ApiState =
 
 const [initDdl = INIT_DDL, initSelect = INIT_SELECT] = getStatementsFromUrl()
 
-export default function Home () {
+export default function App () {
   const [apiState, setApiState] = useState<ApiState>({ type: 'nothing' })
   const [ddlStatement, setDdlStatement] = useState(initDdl)
   const [selectStatement, setSelectStatement] = useState(initSelect)
@@ -63,7 +59,7 @@ export default function Home () {
     <main className="h-screen w-full flex flex-col">
       <div className="p-2 flex flex-row justify-between items-center">
         <div className="p-2 flex flex-row items-center">
-          <Image
+          <img
             className={'mr-4'}
             alt={'df-logo'}
             src={'/df-logo.png'}
@@ -82,13 +78,14 @@ export default function Home () {
           />
         </div>
         <div className={"flex flex-row items-center"}>
-          <Link
+          <a
             className={'mr-4'}
             href={'https://github.com/gabotechs/datafusion-fiddle'}
             target={'_blank'}
+            rel="noopener noreferrer"
           >
             <GithubIcon/>
-          </Link>
+          </a>
           <span className={'text-sm text-gray-500 mr-4'}>DataFusion version 48.0.0</span>
         </div>
       </div>
