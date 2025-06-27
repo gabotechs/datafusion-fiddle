@@ -3,7 +3,6 @@ import { useEffect } from "react";
 export function useSubmit(onSubmit: () => void) {
   useEffect(() => {
     function keyPressEvent (e: KeyboardEvent) {
-      console.log(e)
       if (e.ctrlKey && !e.altKey && !e.shiftKey && e.code === 'Enter') {
         e.preventDefault()
         try {
