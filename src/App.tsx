@@ -63,7 +63,7 @@ export default function App () {
     <main className="h-screen w-full flex flex-col">
       <div className="py-2 flex flex-row justify-between items-center z-10 shadow-xl bg-primary-surface">
         <div className="px-4 flex flex-row items-center gap-4">
-          <DataFusionIcon size={HEADER_ICON_SIZE}/>
+          <DataFusionIcon size={28}/>
           <span className={'text-xl text-text-primary'}> DataFusion Fiddle </span>
           <PlayButton
             className={'ml-1'} // ml-1, otherwise it seems too close to the text
