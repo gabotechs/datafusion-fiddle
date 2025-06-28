@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback, Dispatch, SetStateAction } from 'react';
 
-export function useLocalStorage<T>(key: string, initialValue: T) {
+export function useLocalStorage<T>(key: string, initialValue: T, debounceMs: number = 200) {
   const [storedValue, setStoredValue] = useState<T>(() => {
     try {
       const item = window.localStorage.getItem(key);
@@ -10,15 +10,26 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     }
   });
 
-  const setValue = (value: T | ((val: T) => T)) => {
+  const timeoutRef = useRef<number>(null);
+
+  const setValue: Dispatch<SetStateAction<T>> = useCallback((value) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      setStoredValue(value);
+      
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      timeoutRef.current = setTimeout(() => {
+        setStoredValue(prev => {
+          window.localStorage.setItem(key, JSON.stringify(prev));
+          return prev
+        })
+      }, debounceMs);
     } catch (error) {
       console.log(error);
     }
-  };
+  }, [key, storedValue, debounceMs]);
 
   return [storedValue, setValue] as const;
 }

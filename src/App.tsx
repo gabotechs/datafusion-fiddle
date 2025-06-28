@@ -40,7 +40,7 @@ export default function App () {
   }
 
   const screenWidth = useScreenWidth()
-  const [midBarPosition, setMidBarPosition] = useState( 0);
+  const [midBarPosition, setMidBarPosition] = useLocalStorage('mid-bar-position',  0);
 
   useSubmit(execute)
 
