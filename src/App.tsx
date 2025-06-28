@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import { useState } from "react";
 import * as monaco from 'monaco-editor'
 
 import { executeStatements, SqlResponse } from "./api";
@@ -7,7 +7,6 @@ import { INIT_DDL, INIT_SELECT } from "./constants";
 import { ResultVisualizer } from "./ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
 import { SqlEditor } from "./SqlEditor";
-import { useSubmit } from "./useSubmit";
 import { useScreenWidth } from "./useScreenWidth";
 import { DragHandle } from "@/components/DragHandle";
 import { VimButton } from "@/components/VimButton";
@@ -66,7 +65,7 @@ export default function App () {
           <DataFusionIcon size={HEADER_ICON_SIZE}/>
           <span className={'text-xl text-text-primary'}> DataFusion Fiddle </span>
           <PlayButton
-            size={HEADER_ICON_SIZE-2}
+            size={HEADER_ICON_SIZE - 2}
             onClick={execute}
             loading={apiState.type === 'loading'}
           />
