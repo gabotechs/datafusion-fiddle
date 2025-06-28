@@ -57,25 +57,27 @@ export default function App () {
     [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyH, () => leftEditor?.focus()],
   ])
 
+  const HEADER_ICON_SIZE = 24
+
   return (
     <main className="h-screen w-full flex flex-col">
-      <div className="p-1 flex flex-row justify-between items-center z-10 shadow-xl bg-primary-surface">
-        <div className="px-1 flex flex-row items-center ">
-          <DataFusionIcon className={'ml-2'}/>
-          <span className={'ml-4 text-xl text-text-primary'}> DataFusion Fiddle </span>
+      <div className="py-2 flex flex-row justify-between items-center z-10 shadow-xl bg-primary-surface">
+        <div className="px-4 flex flex-row items-center gap-4">
+          <DataFusionIcon size={HEADER_ICON_SIZE}/>
+          <span className={'text-xl text-text-primary'}> DataFusion Fiddle </span>
           <PlayButton
-            className={'ml-6'}
+            size={HEADER_ICON_SIZE-2}
             onClick={execute}
             loading={apiState.type === 'loading'}
           />
           <ShareButton
-            className={'ml-4 text-text-primary'}
+            size={HEADER_ICON_SIZE}
             getUrl={() => dumpStatementsIntoUrl(ddlStatement, selectStatement)}
           />
         </div>
-        <div className={"flex flex-row items-center"}>
-          <VimButton className={'mr-3'} isVimModeEnabled={vim} onToggleVim={() => setVim(!vim)}/>
-          <GithubLink className={'mr-3'}/>
+        <div className={"px-4 flex flex-row items-center gap-4"}>
+          <VimButton size={HEADER_ICON_SIZE} enabled={vim} toggle={() => setVim(!vim)}/>
+          <GithubLink size={HEADER_ICON_SIZE}/>
           <DataFusionVersion/>
         </div>
       </div>

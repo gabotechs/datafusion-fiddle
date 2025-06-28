@@ -1,23 +1,25 @@
 import React, { HTMLProps } from "react";
 
 export interface VimButtonProps extends Omit<HTMLProps<HTMLButtonElement>, 'onClick' | 'type'> {
-  isVimModeEnabled: boolean;
-  onToggleVim: () => void;
+  size: number;
+  enabled: boolean;
+  toggle: () => void;
 }
 
-export function VimButton ({ className = '', isVimModeEnabled, onToggleVim, ...props }: VimButtonProps) {
+export function VimButton ({ className = '', size, style, enabled, toggle, ...props }: VimButtonProps) {
   return (
     <button
-      className={`w-8 h-8 rounded flex items-center justify-center focus:outline-none cursor-pointer ${className}`}
-      onClick={onToggleVim}
+      className={`rounded flex items-center justify-center focus:outline-none cursor-pointer ${className}`}
+      onClick={toggle}
       type={'button'}
-      title={`${isVimModeEnabled ? 'Disable' : 'Enable'} Vim mode`}
+      title={`${enabled ? 'Disable' : 'Enable'} Vim mode`}
+      style={{ ...style, width: size, height: size }}
       {...props}
     >
       <img
         src="/vim-logo.svg"
         alt="Vim"
-        className={`w-6 h-6 ${isVimModeEnabled ? '' : 'grayscale'}`}
+        className={`${enabled ? '' : 'grayscale'}`}
       />
     </button>
   );

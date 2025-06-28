@@ -6,12 +6,12 @@ interface DataFusionVersionProps {
   style?: React.CSSProperties;
 }
 
-export function DataFusionVersion ({ className, style }: DataFusionVersionProps) {
+export function DataFusionVersion ({ className = '', style }: DataFusionVersionProps) {
   const versionMatch = CargoToml.match(/datafusion\s*=\s*{\s*version\s*=\s*"([^"]+)"/);
   const version = versionMatch ? versionMatch[1] : '?.?.?';
 
   return <span
-    className={`text-sm text-text-secondary mr-4 ${className || ''}`}
+    className={`text-sm text-text-secondary ${className}`}
     style={style}
   >
     DataFusion version {version}
