@@ -17,6 +17,9 @@ importers:
       monaco-sql-languages:
         specifier: ^0.15.1
         version: 0.15.1(antlr4ng-cli@2.0.0)(monaco-editor@0.52.2)
+      monaco-vim:
+        specifier: ^0.4.2
+        version: 0.4.2(monaco-editor@0.52.2)
       react:
         specifier: ^19.1.0
         version: 19.1.0
@@ -1638,6 +1641,11 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       monaco-editor: '>=0.31.0'
+
+  monaco-vim@0.4.2:
+    resolution: {integrity: sha512-rdbQC3O2rmpwX2Orzig/6gZjZfH7q7TIeB+uEl49sa+QyNm3jCKJOw5mwxBdFzTqbrPD+URfg6A2lEkuL5kymw==}
+    peerDependencies:
+      monaco-editor: '*'
 
   mri@1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
@@ -3725,6 +3733,10 @@ snapshots:
       monaco-editor: 0.52.2
     transitivePeerDependencies:
       - antlr4ng-cli
+
+  monaco-vim@0.4.2(monaco-editor@0.52.2):
+    dependencies:
+      monaco-editor: 0.52.2
 
   mri@1.2.0: {}
 

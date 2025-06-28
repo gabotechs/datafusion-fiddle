@@ -10,6 +10,7 @@ import { useSubmit } from "./useSubmit";
 import { GithubIcon } from "@/components/GithubIcon";
 import { useScreenWidth } from "./useScreenWidth";
 import { DragHandle } from "@/components/DragHandle";
+import { VimButton } from "@/components/VimButton";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -20,6 +21,7 @@ export type ApiState =
 const [initDdl = INIT_DDL, initSelect = INIT_SELECT] = getStatementsFromUrl()
 
 export default function App () {
+  const [vim, setVim] = useState(false)
   const [apiState, setApiState] = useState<ApiState>({ type: 'nothing' })
   const [ddlStatement, setDdlStatement] = useState(initDdl)
   const [selectStatement, setSelectStatement] = useState(initSelect)
@@ -61,6 +63,7 @@ export default function App () {
           />
         </div>
         <div className={"flex flex-row items-center"}>
+          <VimButton className={'mr-3'} isVimModeEnabled={vim} onToggleVim={() => setVim(!vim)} />
           <a
             className={'mr-4'}
             href={'https://github.com/gabotechs/datafusion-fiddle'}
@@ -75,6 +78,7 @@ export default function App () {
       <div className={"flex flex-row flex-grow min-h-0"}>
         <SqlEditor
           height={'100%'}
+          vim={vim}
           width={screenWidth ? (screenWidth / 2 - 2 - midBarPosition) : '50%'}
           value={ddlStatement}
           onChange={setDdlStatement}
@@ -83,6 +87,7 @@ export default function App () {
         <DragHandle onDrag={delta => setMidBarPosition(prev => prev - delta)} direction="horizontal"/>
         <SqlEditor
           height={'100%'}
+          vim={vim}
           width={screenWidth ? (screenWidth / 2 - 2 + midBarPosition) : '50%'}
           value={selectStatement}
           onChange={setSelectStatement}

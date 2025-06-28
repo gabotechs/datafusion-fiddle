@@ -12,6 +12,7 @@ import * as monaco from "monaco-editor";
 import { languages } from "monaco-editor";
 
 import pgWorker from 'monaco-sql-languages/esm/languages/pgsql/pgsql.worker?worker'
+import { useVimMode } from "@/src/SqlEditorVimMode";
 
 self.MonacoEnvironment = {
   getWorker: function () {
@@ -88,17 +89,20 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
 export interface SqlEditorProps {
   height: CSSProperties['height'];
   width: CSSProperties['width'];
+  vim: boolean;
   value: string;
   onChange: (code: string) => void;
   // Optional: add a handler for Cmd+Enter if needed
   onSubmit?: () => void;
 }
 
-export function SqlEditor ({ onChange, onSubmit, ...props }: SqlEditorProps) {
+export function SqlEditor ({ onChange, onSubmit, vim, ...props }: SqlEditorProps) {
   // Need to pass the onSubmit callback by reference, otherwise, only
   // the first onSubmit value ever passed will be captured by the onMount closure.
   const onSubmitRef = React.useRef(onSubmit)
   onSubmitRef.current = onSubmit
+
+  const { onMount } = useVimMode({ enabled: vim });
 
   return (
     <Editor
@@ -113,6 +117,7 @@ export function SqlEditor ({ onChange, onSubmit, ...props }: SqlEditorProps) {
             onSubmitRef.current?.();
           },
         });
+        onMount(editor)
       }}
       theme={'sql-dark'}
       language={LanguageIdEnum.PG}
