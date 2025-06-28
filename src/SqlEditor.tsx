@@ -1,3 +1,4 @@
+import { useVimMode } from "@/src/useVimMode";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import React, { CSSProperties } from "react";
 import { Editor, loader } from "@monaco-editor/react";
@@ -12,7 +13,6 @@ import * as monaco from "monaco-editor";
 import { languages } from "monaco-editor";
 
 import pgWorker from 'monaco-sql-languages/esm/languages/pgsql/pgsql.worker?worker'
-import { useVimMode } from "@/src/SqlEditorVimMode";
 
 self.MonacoEnvironment = {
   getWorker: function () {
@@ -71,7 +71,7 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
             .flatMap(v => ({
               label: v,
               kind: languages.CompletionItemKind.Class,
-              detail: item.syntaxContextType+' suggestion',
+              detail: item.syntaxContextType + ' suggestion',
               // top priority completion.
               sortText: '1' + v
             }))
