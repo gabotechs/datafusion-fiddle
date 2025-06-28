@@ -7,11 +7,13 @@ import { ResultVisualizer } from "./ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
 import { SqlEditor } from "./SqlEditor";
 import { useSubmit } from "./useSubmit";
-import { GithubIcon } from "@/components/GithubIcon";
 import { useScreenWidth } from "./useScreenWidth";
 import { DragHandle } from "@/components/DragHandle";
 import { VimButton } from "@/components/VimButton";
 import { useLocalStorage } from "@/src/useLocalStorage";
+import { DataFusionVersion } from "@/components/DataFusionVersion";
+import { GithubLink } from "@/components/GithubLink";
+import { DataFusionIcon } from "@/components/DataFusionIcon";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -46,12 +48,7 @@ export default function App () {
     <main className="h-screen w-full flex flex-col">
       <div className="p-1 flex flex-row justify-between items-center z-10 shadow-xl bg-primary-surface">
         <div className="px-1 flex flex-row items-center ">
-          <img
-            alt={'df-logo'}
-            src={'/df-logo.png'}
-            width={28}
-            height={28}
-          />
+          <DataFusionIcon className={'ml-2'}/>
           <span className={'ml-4 text-xl text-text-primary'}> DataFusion Fiddle </span>
           <PlayButton
             className={'ml-6'}
@@ -65,15 +62,8 @@ export default function App () {
         </div>
         <div className={"flex flex-row items-center"}>
           <VimButton className={'mr-3'} isVimModeEnabled={vim} onToggleVim={() => setVim(!vim)}/>
-          <a
-            className={'mr-4'}
-            href={'https://github.com/gabotechs/datafusion-fiddle'}
-            target={'_blank'}
-            rel="noopener noreferrer"
-          >
-            <GithubIcon/>
-          </a>
-          <span className={'text-sm text-text-secondary mr-4'}>DataFusion version 48.0.0</span>
+          <GithubLink className={'mr-3'}/>
+          <DataFusionVersion/>
         </div>
       </div>
       <div className={"flex flex-row flex-grow min-h-0"}>
