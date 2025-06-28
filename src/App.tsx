@@ -14,6 +14,7 @@ import { useLocalStorage } from "@/src/useLocalStorage";
 import { DataFusionVersion } from "@/components/DataFusionVersion";
 import { GithubLink } from "@/components/GithubLink";
 import { DataFusionIcon } from "@/components/DataFusionIcon";
+import { ShortcutsButton } from "@/components/ShortcutsButton";
 import { useShortcuts } from "@/src/useShortcuts";
 
 export type ApiState =
@@ -65,7 +66,8 @@ export default function App () {
           <DataFusionIcon size={HEADER_ICON_SIZE}/>
           <span className={'text-xl text-text-primary'}> DataFusion Fiddle </span>
           <PlayButton
-            size={HEADER_ICON_SIZE - 2}
+            className={'ml-1'} // ml-1, otherwise it seems too close to the text
+            size={HEADER_ICON_SIZE - 2} // -2, otherwise it seems too big
             onClick={execute}
             loading={apiState.type === 'loading'}
           />
@@ -75,6 +77,7 @@ export default function App () {
           />
         </div>
         <div className={"px-4 flex flex-row items-center gap-4"}>
+          <ShortcutsButton size={HEADER_ICON_SIZE} />
           <VimButton size={HEADER_ICON_SIZE} enabled={vim} toggle={() => setVim(!vim)}/>
           <GithubLink size={HEADER_ICON_SIZE}/>
           <DataFusionVersion/>
