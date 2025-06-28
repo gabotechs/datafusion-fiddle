@@ -91,12 +91,13 @@ export interface SqlEditorProps {
   width: CSSProperties['width'];
   vim: boolean;
   value: string;
+  autoFocus?: boolean;
   onChange: (code: string) => void;
   // Optional: add a handler for Cmd+Enter if needed
   onSubmit?: () => void;
 }
 
-export function SqlEditor ({ onChange, onSubmit, vim, ...props }: SqlEditorProps) {
+export function SqlEditor ({ onChange, onSubmit, vim, autoFocus, ...props }: SqlEditorProps) {
   // Need to pass the onSubmit callback by reference, otherwise, only
   // the first onSubmit value ever passed will be captured by the onMount closure.
   const onSubmitRef = React.useRef(onSubmit)
@@ -118,6 +119,9 @@ export function SqlEditor ({ onChange, onSubmit, vim, ...props }: SqlEditorProps
           },
         });
         onMount(editor)
+        if (autoFocus) {
+          editor.focus();
+        }
       }}
       theme={'sql-dark'}
       language={LanguageIdEnum.PG}

@@ -11,6 +11,7 @@ import { GithubIcon } from "@/components/GithubIcon";
 import { useScreenWidth } from "./useScreenWidth";
 import { DragHandle } from "@/components/DragHandle";
 import { VimButton } from "@/components/VimButton";
+import { useLocalStorage } from "@/src/useLocalStorage";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -21,10 +22,10 @@ export type ApiState =
 const [initDdl = INIT_DDL, initSelect = INIT_SELECT] = getStatementsFromUrl()
 
 export default function App () {
-  const [vim, setVim] = useState(false)
+  const [vim, setVim] = useLocalStorage('vim-mode', false)
   const [apiState, setApiState] = useState<ApiState>({ type: 'nothing' })
-  const [ddlStatement, setDdlStatement] = useState(initDdl)
-  const [selectStatement, setSelectStatement] = useState(initSelect)
+  const [ddlStatement, setDdlStatement] = useLocalStorage('ddl-statement', initDdl)
+  const [selectStatement, setSelectStatement] = useLocalStorage('select-statement', initSelect)
 
   function execute () {
     setApiState({ type: 'loading' })
@@ -37,7 +38,7 @@ export default function App () {
   }
 
   const screenWidth = useScreenWidth()
-  const [midBarPosition, setMidBarPosition] = useState(0);
+  const [midBarPosition, setMidBarPosition] = useState( 0);
 
   useSubmit(execute)
 
@@ -63,7 +64,7 @@ export default function App () {
           />
         </div>
         <div className={"flex flex-row items-center"}>
-          <VimButton className={'mr-3'} isVimModeEnabled={vim} onToggleVim={() => setVim(!vim)} />
+          <VimButton className={'mr-3'} isVimModeEnabled={vim} onToggleVim={() => setVim(!vim)}/>
           <a
             className={'mr-4'}
             href={'https://github.com/gabotechs/datafusion-fiddle'}
@@ -88,6 +89,7 @@ export default function App () {
         <SqlEditor
           height={'100%'}
           vim={vim}
+          autoFocus
           width={screenWidth ? (screenWidth / 2 - 2 + midBarPosition) : '50%'}
           value={selectStatement}
           onChange={setSelectStatement}
