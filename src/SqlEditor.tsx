@@ -91,37 +91,25 @@ export interface SqlEditorProps {
   width: CSSProperties['width'];
   vim: boolean;
   value: string;
-  autoFocus?: boolean;
   onChange: (code: string) => void;
+  onMount?: (editor: monaco.editor.IStandaloneCodeEditor) => void;
   // Optional: add a handler for Cmd+Enter if needed
   onSubmit?: () => void;
 }
 
-export function SqlEditor ({ onChange, onSubmit, vim, autoFocus, ...props }: SqlEditorProps) {
+export function SqlEditor ({ onChange, onSubmit, vim, onMount, ...props }: SqlEditorProps) {
   // Need to pass the onSubmit callback by reference, otherwise, only
   // the first onSubmit value ever passed will be captured by the onMount closure.
   const onSubmitRef = React.useRef(onSubmit)
   onSubmitRef.current = onSubmit
 
-  const { onMount } = useVimMode({ enabled: vim });
+  const vimMode = useVimMode({ enabled: vim });
 
   return (
     <Editor
-      onMount={async (editor) => {
-        editor.addAction({
-          id: "execute-sql",
-          label: "Execute SQL",
-          keybindings: [
-            monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter,
-          ],
-          run: () => {
-            onSubmitRef.current?.();
-          },
-        });
-        onMount(editor)
-        if (autoFocus) {
-          editor.focus();
-        }
+      onMount={(editor) => {
+        vimMode.onMount(editor)
+        onMount?.(editor);
       }}
       theme={'sql-dark'}
       language={LanguageIdEnum.PG}

@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import * as monaco from 'monaco-editor'
 
 import { executeStatements, SqlResponse } from "./api";
 import { PlayButton } from "@/components/PlayButton";
@@ -14,6 +15,7 @@ import { useLocalStorage } from "@/src/useLocalStorage";
 import { DataFusionVersion } from "@/components/DataFusionVersion";
 import { GithubLink } from "@/components/GithubLink";
 import { DataFusionIcon } from "@/components/DataFusionIcon";
+import { useShortcuts } from "@/src/useShortcuts";
 
 export type ApiState =
   { type: 'nothing' } |
@@ -40,9 +42,20 @@ export default function App () {
   }
 
   const screenWidth = useScreenWidth()
-  const [midBarPosition, setMidBarPosition] = useLocalStorage('mid-bar-position',  0);
+  const [midBarPosition, setMidBarPosition] = useLocalStorage('mid-bar-position', 0);
 
-  useSubmit(execute)
+  const [leftEditor, setLeftEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
+  const [rightEditor, setRightEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
+
+  useShortcuts(leftEditor, [
+    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, execute],
+    [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyL, () => rightEditor?.focus()],
+  ])
+
+  useShortcuts(rightEditor, [
+    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, execute],
+    [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyH, () => leftEditor?.focus()],
+  ])
 
   return (
     <main className="h-screen w-full flex flex-col">
@@ -72,6 +85,7 @@ export default function App () {
           vim={vim}
           width={screenWidth ? (screenWidth / 2 - 2 - midBarPosition) : '50%'}
           value={ddlStatement}
+          onMount={setLeftEditor}
           onChange={setDdlStatement}
           onSubmit={execute}
         />
@@ -79,9 +93,12 @@ export default function App () {
         <SqlEditor
           height={'100%'}
           vim={vim}
-          autoFocus
           width={screenWidth ? (screenWidth / 2 - 2 + midBarPosition) : '50%'}
           value={selectStatement}
+          onMount={v => {
+            v.focus() // focus the right editor on mount
+            setRightEditor(v)
+          }}
           onChange={setSelectStatement}
           onSubmit={execute}
         />
