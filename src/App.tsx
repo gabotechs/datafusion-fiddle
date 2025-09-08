@@ -1,7 +1,7 @@
 import { useState } from "react";
 import * as monaco from 'monaco-editor'
 
-import { executeStatements, SqlResponse } from "./api";
+import { useApi } from "./useApi";
 import { PlayButton } from "@/components/PlayButton";
 import { INIT_DDL, INIT_SELECT } from "./constants";
 import { ResultVisualizer } from "./ResultVisualizer";
@@ -17,29 +17,14 @@ import { DataFusionIcon } from "@/components/DataFusionIcon";
 import { ShortcutsButton } from "@/components/ShortcutsButton";
 import { useShortcuts } from "@/src/useShortcuts";
 
-export type ApiState =
-  { type: 'nothing' } |
-  { type: 'loading' } |
-  { type: 'error', message: string } |
-  { type: 'result', result: SqlResponse }
 
 const [initDdl = INIT_DDL, initSelect = INIT_SELECT] = getStatementsFromUrl()
 
 export default function App () {
   const [vim, setVim] = useLocalStorage('vim-mode', false)
-  const [apiState, setApiState] = useState<ApiState>({ type: 'nothing' })
+  const { apiState, execute } = useApi()
   const [ddlStatement, setDdlStatement] = useLocalStorage('ddl-statement', initDdl)
   const [selectStatement, setSelectStatement] = useLocalStorage('select-statement', initSelect)
-
-  function execute () {
-    setApiState({ type: 'loading' })
-    executeStatements([
-      ...ddlStatement.split(';').map(_ => _.trim()).filter(_ => _.length > 0),
-      ...selectStatement.split(';').map(_ => _.trim()).filter(_ => _.length > 0),
-    ])
-      .then((result) => setApiState({ type: 'result', result }))
-      .catch((err) => setApiState({ type: 'error', message: err.toString() }))
-  }
 
   const screenWidth = useScreenWidth()
   const [midBarPosition, setMidBarPosition] = useLocalStorage('mid-bar-position', 0);
@@ -68,7 +53,7 @@ export default function App () {
           <PlayButton
             className={'ml-1'} // ml-1, otherwise it seems too close to the text
             size={HEADER_ICON_SIZE - 2} // -2, otherwise it seems too big
-            onClick={execute}
+            onClick={() => execute(ddlStatement, selectStatement)}
             loading={apiState.type === 'loading'}
           />
           <ShareButton
@@ -77,7 +62,7 @@ export default function App () {
           />
         </div>
         <div className={"px-4 flex flex-row items-center gap-4"}>
-          <ShortcutsButton size={HEADER_ICON_SIZE} />
+          <ShortcutsButton size={HEADER_ICON_SIZE}/>
           <VimButton size={HEADER_ICON_SIZE} enabled={vim} toggle={() => setVim(!vim)}/>
           <GithubLink size={HEADER_ICON_SIZE}/>
           <DataFusionVersion/>
