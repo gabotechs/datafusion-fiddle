@@ -7,6 +7,8 @@ export interface SqlRequest {
 export interface SqlResponse {
   columns: Array<[string, string]>,
   rows: Array<Array<string>>,
+  logical_plan: string
+  physical_plan: string
 }
 
 export async function executeStatements (stmts: string[]): Promise<SqlResponse> {
