@@ -16,29 +16,30 @@ import { GithubLink } from "@/components/GithubLink";
 import { DataFusionIcon } from "@/components/DataFusionIcon";
 import { ShortcutsButton } from "@/components/ShortcutsButton";
 import { useShortcuts } from "@/src/useShortcuts";
+import { TablesExplorer } from "@/src/TablesExplorer";
 
 
 const [initDdl = INIT_DDL, initSelect = INIT_SELECT] = getStatementsFromUrl()
 
 export default function App () {
   const [vim, setVim] = useLocalStorage('vim-mode', false)
-  const { apiState, execute } = useApi()
+  const api = useApi()
   const [ddlStatement, setDdlStatement] = useLocalStorage('ddl-statement', initDdl)
   const [selectStatement, setSelectStatement] = useLocalStorage('select-statement', initSelect)
 
-  const screenWidth = useScreenWidth()
-  const [midBarPosition, setMidBarPosition] = useLocalStorage('mid-bar-position', 0);
+  const screenWidth = useScreenWidth() ?? 0
+  const [midBarPosition, setMidBarPosition] = useLocalStorage('mid-bar-position', screenWidth / 4);
 
   const [leftEditor, setLeftEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
   const [rightEditor, setRightEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
 
   useShortcuts(leftEditor, [
-    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, execute],
+    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, api.execute],
     [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyL, () => rightEditor?.focus()],
   ])
 
   useShortcuts(rightEditor, [
-    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, execute],
+    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, api.execute],
     [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyH, () => leftEditor?.focus()],
   ])
 
@@ -53,8 +54,8 @@ export default function App () {
           <PlayButton
             className={'ml-1'} // ml-1, otherwise it seems too close to the text
             size={HEADER_ICON_SIZE - 2} // -2, otherwise it seems too big
-            onClick={() => execute(ddlStatement, selectStatement)}
-            loading={apiState.type === 'loading'}
+            onClick={() => api.execute(ddlStatement, selectStatement)}
+            loading={api.state.type === 'loading'}
           />
           <ShareButton
             size={HEADER_ICON_SIZE}
@@ -69,15 +70,10 @@ export default function App () {
         </div>
       </div>
       <div className={"flex flex-row flex-grow min-h-0"}>
-        <SqlEditor
-          height={'100%'}
-          vim={vim}
-          width={screenWidth ? (screenWidth / 2 - 2 - midBarPosition) : '50%'}
-          value={ddlStatement}
-          onMount={setLeftEditor}
-          onChange={setDdlStatement}
-          onSubmit={execute}
-        />
+        <TablesExplorer style={{
+          height: "100%",
+          width: screenWidth ? (screenWidth / 2 - 2 - midBarPosition) : '50%'
+        }}/>
         <DragHandle onDrag={delta => setMidBarPosition(prev => prev - delta)} direction="horizontal"/>
         <SqlEditor
           height={'100%'}
@@ -89,12 +85,12 @@ export default function App () {
             setRightEditor(v)
           }}
           onChange={setSelectStatement}
-          onSubmit={execute}
+          onSubmit={api.execute}
         />
       </div>
       <ResultVisualizer
         className={`overflow-auto`}
-        state={apiState}
+        state={api.state}
       />
     </main>
   );

@@ -9,7 +9,7 @@ use std::fs;
 use std::sync::Arc;
 use vercel_runtime::{run, Body, Error, Request, RequestPayloadExt, Response, StatusCode};
 
-const MAX_RESULTS: usize = 100;
+const MAX_RESULTS: usize = 500;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
