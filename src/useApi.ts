@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 export interface SqlRequest {
   stmts: string[]
+  distributed: boolean
 }
 
 export interface SqlResponse {
@@ -11,9 +12,10 @@ export interface SqlResponse {
   physical_plan: string
 }
 
-export async function executeStatements (stmts: string[]): Promise<SqlResponse> {
+export async function executeStatements (stmts: string[], distributed: boolean): Promise<SqlResponse> {
   const req: SqlRequest = {
-    stmts
+    stmts,
+    distributed
   }
   const res = await fetch(
     '/api/main',
@@ -40,15 +42,19 @@ export type ApiState =
   { type: 'error', message: string } |
   { type: 'result', result: SqlResponse }
 
+export interface ApiRequest {
+  statement: string
+  distributed: boolean
+}
+
 export function useApi () {
   const [state, setState] = useState<ApiState>({ type: 'nothing' });
 
-  const execute = React.useCallback(async (...statements: string[]) => {
+  const execute = React.useCallback(async (req: ApiRequest) => {
     setState({ type: 'loading' });
     const result = await executeStatements(
-      statements.flatMap((statement) =>
-        statement.split(';').map(_ => _.trim()).filter(_ => _.length > 0),
-      )
+      req.statement.split(';').map(_ => _.trim()).filter(_ => _.length > 0),
+      req.distributed
     )
       .then((result) => ({ type: 'result' as const, result }))
       .catch((err) => ({ type: 'error' as const, message: err.toString() }));

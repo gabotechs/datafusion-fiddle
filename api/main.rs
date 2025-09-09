@@ -1,18 +1,94 @@
+use arrow_flight::flight_service_server::FlightServiceServer;
+use async_trait::async_trait;
 use datafusion::arrow::error::ArrowError;
 use datafusion::arrow::util::display::{ArrayFormatter, FormatOptions};
 use datafusion::error::DataFusionError;
+use datafusion::execution::SessionStateBuilder;
 use datafusion::physical_plan::{displayable, execute_stream, ExecutionPlan};
 use datafusion::prelude::{ParquetReadOptions, SessionConfig, SessionContext};
+use datafusion_distributed::{
+    ArrowFlightEndpoint, BoxCloneSyncChannel, ChannelResolver, DistributedExt,
+    DistributedPhysicalOptimizerRule, DistributedSessionBuilderContext,
+};
 use futures::TryStreamExt;
+use hyper_util::rt::TokioIo;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::env::current_dir;
 use std::fmt::Display;
 use std::fs;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
+use tonic::transport::{Endpoint, Server};
 use vercel_runtime::{run, Body, Error, Request, RequestPayloadExt, Response, StatusCode};
 
 const MAX_RESULTS: usize = 500;
+
+const DUMMY_URL: &str = "http://localhost:50051";
+
+#[derive(Clone)]
+struct InMemoryChannelResolver {
+    channel: BoxCloneSyncChannel,
+}
+
+impl InMemoryChannelResolver {
+    fn new() -> Self {
+        let (client, server) = tokio::io::duplex(1024 * 1024);
+
+        let mut client = Some(client);
+        let channel = Endpoint::try_from(DUMMY_URL)
+            .expect("Invalid dummy URL for building an endpoint. This should never happen")
+            .connect_with_connector_lazy(tower::service_fn(move |_| {
+                let client = client
+                    .take()
+                    .expect("Client taken twice. This should never happen");
+                async move { Ok::<_, std::io::Error>(TokioIo::new(client)) }
+            }));
+
+        let this = Self {
+            channel: BoxCloneSyncChannel::new(channel),
+        };
+        let this_clone = this.clone();
+
+        let endpoint =
+            ArrowFlightEndpoint::try_new(move |ctx: DistributedSessionBuilderContext| {
+                let this = this.clone();
+                async move {
+                    let builder = SessionStateBuilder::new()
+                        .with_default_features()
+                        .with_distributed_channel_resolver(this)
+                        .with_runtime_env(ctx.runtime_env.clone());
+                    Ok(builder.build())
+                }
+            })
+            .unwrap();
+
+        tokio::spawn(async move {
+            Server::builder()
+                .add_service(FlightServiceServer::new(endpoint))
+                .serve_with_incoming(tokio_stream::once(Ok::<_, std::io::Error>(server)))
+                .await
+        });
+
+        this_clone
+    }
+}
+
+#[async_trait]
+impl ChannelResolver for InMemoryChannelResolver {
+    fn get_urls(&self) -> Result<Vec<url::Url>, DataFusionError> {
+        Ok(vec![url::Url::parse(DUMMY_URL).unwrap()])
+    }
+
+    async fn get_channel_for_url(
+        &self,
+        _: &url::Url,
+    ) -> Result<BoxCloneSyncChannel, DataFusionError> {
+        Ok(self.channel.clone())
+    }
+}
+
+static CHANNEL_RESOLVER: LazyLock<InMemoryChannelResolver> =
+    LazyLock::new(InMemoryChannelResolver::new);
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -21,6 +97,7 @@ async fn main() -> Result<(), Error> {
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 struct SqlRequest {
+    distributed: bool,
     stmts: Vec<String>,
 }
 
@@ -30,7 +107,7 @@ pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
         None => return throw_error("No sql request was passed", None, StatusCode::BAD_REQUEST),
     };
 
-    let res = match execute_statements(req.stmts, "api/parquet").await {
+    let res = match execute_statements(req.stmts, "api/parquet", req.distributed).await {
         Ok(res) => res,
         Err(err) => {
             return throw_error(
@@ -80,10 +157,22 @@ struct SqlResult {
 async fn execute_statements(
     stmts: Vec<String>,
     path: impl Display,
+    distributed: bool,
 ) -> datafusion::error::Result<SqlResult> {
     let options = FormatOptions::default().with_display_error(true);
     let cfg = SessionConfig::new().with_information_schema(true);
-    let ctx = Arc::new(SessionContext::new_with_config(cfg));
+
+    let mut builder = SessionStateBuilder::new()
+        .with_default_features()
+        .with_config(cfg);
+    if distributed {
+        builder = builder
+            .with_physical_optimizer_rule(Arc::new(
+                DistributedPhysicalOptimizerRule::default().with_maximum_partitions_per_task(1),
+            ))
+            .with_distributed_channel_resolver(CHANNEL_RESOLVER.clone());
+    }
+    let ctx = Arc::new(SessionContext::new_with_state(builder.build()));
     load_parquet_files(path.to_string(), &ctx).await?;
 
     if stmts.is_empty() {
@@ -180,6 +269,7 @@ mod tests {
                 "SELECT * FROM book".to_string(),
             ],
             format!("{}/api/parquet", env!("CARGO_MANIFEST_DIR")),
+            false,
         )
         .await?;
 
@@ -198,6 +288,7 @@ mod tests {
         let result = execute_statements(
             vec!["SELECT * FROM weather LIMIT 10".to_string()],
             format!("{}/api/parquet", env!("CARGO_MANIFEST_DIR")),
+            false,
         )
         .await?;
 
@@ -225,6 +316,67 @@ mod tests {
         +-------------------+-------------------+--------------------+-----------------------+---------------------+------------------------+--------------------------+-----------------------+-----------------------+-------------------------+----------------------+---------------------+---------------------+-----------------------+-----------------------+------------------+------------------+-------------------+-------------------+----------------------+-------------------+-------------------------+
         | 8.4               | 22.8              | 16.2               | 5.4                   | 7.7                 | E                      | 31                       | S                     | ESE                   | 7                       | 6                    | 82                  | 32                  | 1024.1                | 1020.7                | 7                | 1                | 13.3              | 21.7              | Yes                  | 0.0               | No                      |
         +-------------------+-------------------+--------------------+-----------------------+---------------------+------------------------+--------------------------+-----------------------+-----------------------+-------------------------+----------------------+---------------------+---------------------+-----------------------+-----------------------+------------------+------------------+-------------------+-------------------+----------------------+-------------------+-------------------------+
+        ");
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_distributed() -> datafusion::error::Result<()> {
+        let result = execute_statements(
+            // TPCH 17
+            vec![r#"
+select
+        sum(l_extendedprice) / 7.0 as avg_yearly
+from
+    lineitem,
+    part
+where
+        p_partkey = l_partkey
+  and p_brand = 'Brand#23'
+  and p_container = 'MED BOX'
+  and l_quantity < (
+    select
+            0.2 * avg(l_quantity)
+    from
+        lineitem
+    where
+            l_partkey = p_partkey
+);
+            "#
+            .to_string()],
+            format!("{}/api/parquet", env!("CARGO_MANIFEST_DIR")),
+            true,
+        )
+        .await?;
+
+        insta::assert_snapshot!(result.physical_plan, @r"
+        ┌───── Stage 2   Tasks: t0:[p0] 
+        │ ProjectionExec: expr=[CAST(sum(lineitem.l_extendedprice)@0 AS Float64) / 7 as avg_yearly]
+        │   AggregateExec: mode=Final, gby=[], aggr=[sum(lineitem.l_extendedprice)]
+        │     CoalescePartitionsExec
+        │       AggregateExec: mode=Partial, gby=[], aggr=[sum(lineitem.l_extendedprice)]
+        │         CoalesceBatchesExec: target_batch_size=8192
+        │           HashJoinExec: mode=CollectLeft, join_type=Inner, on=[(p_partkey@2, l_partkey@1)], filter=CAST(l_quantity@0 AS Decimal128(30, 15)) < Float64(0.2) * avg(lineitem.l_quantity)@1, projection=[l_extendedprice@1]
+        │             CoalescePartitionsExec
+        │               ProjectionExec: expr=[l_quantity@1 as l_quantity, l_extendedprice@2 as l_extendedprice, p_partkey@0 as p_partkey]
+        │                 CoalesceBatchesExec: target_batch_size=8192
+        │                   HashJoinExec: mode=CollectLeft, join_type=Inner, on=[(p_partkey@0, l_partkey@0)], projection=[p_partkey@0, l_quantity@2, l_extendedprice@3]
+        │                     CoalescePartitionsExec
+        │                       CoalesceBatchesExec: target_batch_size=8192
+        │                         FilterExec: p_brand@1 = Brand#23 AND p_container@2 = MED BOX, projection=[p_partkey@0]
+        │                           DataSourceExec: file_groups={16 groups: [[/api/parquet/part/1.parquet], [/api/parquet/part/10.parquet], [/api/parquet/part/11.parquet], [/api/parquet/part/12.parquet], [/api/parquet/part/13.parquet], ...]}, projection=[p_partkey, p_brand, p_container], file_type=parquet, predicate=p_brand@1 = Brand#23 AND p_container@2 = MED BOX, pruning_predicate=p_brand_null_count@2 != row_count@3 AND p_brand_min@0 <= Brand#23 AND Brand#23 <= p_brand_max@1 AND p_container_null_count@6 != row_count@3 AND p_container_min@4 <= MED BOX AND MED BOX <= p_container_max@5, required_guarantees=[p_brand in (Brand#23), p_container in (MED BOX)]
+        │                     DataSourceExec: file_groups={16 groups: [[/api/parquet/lineitem/1.parquet], [/api/parquet/lineitem/10.parquet], [/api/parquet/lineitem/11.parquet], [/api/parquet/lineitem/12.parquet], [/api/parquet/lineitem/13.parquet], ...]}, projection=[l_partkey, l_quantity, l_extendedprice], file_type=parquet
+        │             ProjectionExec: expr=[CAST(0.2 * CAST(avg(lineitem.l_quantity)@1 AS Float64) AS Decimal128(30, 15)) as Float64(0.2) * avg(lineitem.l_quantity), l_partkey@0 as l_partkey]
+        │               AggregateExec: mode=FinalPartitioned, gby=[l_partkey@0 as l_partkey], aggr=[avg(lineitem.l_quantity)]
+        │                 CoalesceBatchesExec: target_batch_size=8192
+        │                   ArrowFlightReadExec input_stage=1, input_partitions=16, input_tasks=16
+        └──────────────────────────────────────────────────
+          ┌───── Stage 1   Tasks: t0:[p0] t1:[p1] t2:[p2] t3:[p3] t4:[p4] t5:[p5] t6:[p6] t7:[p7] t8:[p8] t9:[p9] t10:[p10] t11:[p11] t12:[p12] t13:[p13] t14:[p14] t15:[p15] 
+          │ RepartitionExec: partitioning=Hash([l_partkey@0], 16), input_partitions=1
+          │   PartitionIsolatorExec Tasks: t0:[p0,__,__,__,__,__,__,__,__,__,__,__,__,__,__,__] t1:[__,p0,__,__,__,__,__,__,__,__,__,__,__,__,__,__] t2:[__,__,p0,__,__,__,__,__,__,__,__,__,__,__,__,__] t3:[__,__,__,p0,__,__,__,__,__,__,__,__,__,__,__,__] t4:[__,__,__,__,p0,__,__,__,__,__,__,__,__,__,__,__] t5:[__,__,__,__,__,p0,__,__,__,__,__,__,__,__,__,__] t6:[__,__,__,__,__,__,p0,__,__,__,__,__,__,__,__,__] t7:[__,__,__,__,__,__,__,p0,__,__,__,__,__,__,__,__] t8:[__,__,__,__,__,__,__,__,p0,__,__,__,__,__,__,__] t9:[__,__,__,__,__,__,__,__,__,p0,__,__,__,__,__,__] t10:[__,__,__,__,__,__,__,__,__,__,p0,__,__,__,__,__] t11:[__,__,__,__,__,__,__,__,__,__,__,p0,__,__,__,__] t12:[__,__,__,__,__,__,__,__,__,__,__,__,p0,__,__,__] t13:[__,__,__,__,__,__,__,__,__,__,__,__,__,p0,__,__] t14:[__,__,__,__,__,__,__,__,__,__,__,__,__,__,p0,__] t15:[__,__,__,__,__,__,__,__,__,__,__,__,__,__,__,p0] 
+          │     AggregateExec: mode=Partial, gby=[l_partkey@0 as l_partkey], aggr=[avg(lineitem.l_quantity)]
+          │       DataSourceExec: file_groups={16 groups: [[/api/parquet/lineitem/1.parquet], [/api/parquet/lineitem/10.parquet], [/api/parquet/lineitem/11.parquet], [/api/parquet/lineitem/12.parquet], [/api/parquet/lineitem/13.parquet], ...]}, projection=[l_partkey, l_quantity], file_type=parquet
+          └──────────────────────────────────────────────────
         ");
         Ok(())
     }
