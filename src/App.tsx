@@ -1,5 +1,6 @@
 import { useState } from "react";
 import * as monaco from 'monaco-editor'
+import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
 import { useApi } from "./useApi";
 import { PlayButton } from "@/components/PlayButton";
@@ -7,8 +8,6 @@ import { INIT_SELECT } from "./constants";
 import { ResultVisualizer } from "./ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
 import { SqlEditor } from "./SqlEditor";
-import { useScreenWidth } from "./useScreenWidth";
-import { DragHandle } from "@/components/DragHandle";
 import { VimButton } from "@/components/VimButton";
 import { useLocalStorage } from "@/src/useLocalStorage";
 import { DataFusionVersion } from "@/components/DataFusionVersion";
@@ -26,11 +25,7 @@ export default function App () {
   const api = useApi()
   const [statement, setStatement] = useLocalStorage('statement', initSelect)
 
-  const screenWidth = useScreenWidth() ?? 0
-  const [horizontalBarPos, setHorizontalBarPos] = useLocalStorage('horizontal-bar-position', screenWidth / 4);
-  const [verticalBarPos, setVerticalBarPos] = useLocalStorage('vertical-bar-position', 300);
-
-  const [editor, setRightEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
+  const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
 
   useShortcuts(editor, [
     [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => api.execute(statement)],
@@ -63,33 +58,42 @@ export default function App () {
           <DataFusionVersion/>
         </div>
       </div>
-      <div className={"flex flex-col flex-grow min-h-0"}>
-        <div className={"flex flex-row flex-grow min-h-0"}>
-          <TablesExplorer style={{
-            height: "100%",
-            width: screenWidth ? (screenWidth / 2 - 2 - horizontalBarPos) : '50%'
-          }}/>
-          <DragHandle onDrag={delta => setHorizontalBarPos(prev => prev - delta)} direction="horizontal"/>
-          <SqlEditor
-            height={'100%'}
-            vim={vim}
-            width={screenWidth ? (screenWidth / 2 - 2 + horizontalBarPos) : '50%'}
-            value={statement}
-            onMount={v => {
-              v.focus() // focus the right editor on mount
-              setRightEditor(v)
-            }}
-            onChange={setStatement}
-            onSubmit={() => api.execute(statement)}
-          />
-        </div>
-        <DragHandle onDrag={delta => setVerticalBarPos(prev => prev - delta)} direction="vertical"/>
-        <ResultVisualizer
-          className={`overflow-auto`}
-          style={{ height: verticalBarPos }}
-          state={api.state}
-        />
-      </div>
+
+      <PanelGroup direction="vertical" className="flex-grow">
+        <Panel defaultSize={api.state.type === 'nothing' ? 100 : 70} minSize={30}>
+          <PanelGroup direction="horizontal">
+            <Panel defaultSize={25} minSize={15} maxSize={50}>
+              <TablesExplorer className="h-full overflow-auto" />
+            </Panel>
+            <PanelResizeHandle className="w-1.5 bg-secondary-surface hover:bg-blue-900 cursor-col-resize" />
+            <Panel defaultSize={75} minSize={50}>
+              <SqlEditor
+                height={'100%'}
+                vim={vim}
+                width={'100%'}
+                value={statement}
+                onMount={v => {
+                  v.focus()
+                  setEditor(v)
+                }}
+                onChange={setStatement}
+                onSubmit={() => api.execute(statement)}
+              />
+            </Panel>
+          </PanelGroup>
+        </Panel>
+        {api.state.type !== 'nothing' && (
+          <>
+            <PanelResizeHandle className="h-1.5 w-full bg-secondary-surface hover:bg-blue-900 cursor-row-resize" />
+            <Panel defaultSize={30} minSize={10}>
+              <ResultVisualizer
+                className="overflow-auto h-full"
+                state={api.state}
+              />
+            </Panel>
+          </>
+        )}
+      </PanelGroup>
     </main>
   );
 }

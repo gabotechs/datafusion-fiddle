@@ -53,7 +53,7 @@ export function TablesExplorer ({ className, ...props }: TablesExplorerProps) {
   };
 
   return (
-    <div className={`bg-secondary-surface border-r border-border overflow-y-auto ${className || ''}`} {...props}>
+    <div className={`bg-secondary-surface border-r border-border ${className || ''}`} {...props}>
       {renderContent()}
     </div>
   );
