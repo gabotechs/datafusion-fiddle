@@ -85,7 +85,7 @@ export default function App () {
         {api.state.type !== 'nothing' && (
           <>
             <PanelResizeHandle className="h-1.5 w-full bg-secondary-surface hover:bg-blue-900 cursor-row-resize" />
-            <Panel defaultSize={30} minSize={10}>
+            <Panel defaultSize={40} minSize={10}>
               <ResultVisualizer
                 className="overflow-auto h-full"
                 state={api.state}

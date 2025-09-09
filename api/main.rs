@@ -1,9 +1,12 @@
 use datafusion::arrow::error::ArrowError;
 use datafusion::arrow::util::display::{ArrayFormatter, FormatOptions};
 use datafusion::error::DataFusionError;
+use datafusion::physical_plan::{displayable, execute_stream, ExecutionPlan};
 use datafusion::prelude::{ParquetReadOptions, SessionConfig, SessionContext};
+use futures::TryStreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::env::current_dir;
 use std::fmt::Display;
 use std::fs;
 use std::sync::Arc;
@@ -70,6 +73,8 @@ pub fn throw_error(
 struct SqlResult {
     columns: Vec<(String, String)>,
     rows: Vec<Vec<String>>,
+    logical_plan: String,
+    physical_plan: String,
 }
 
 async fn execute_statements(
@@ -89,8 +94,13 @@ async fn execute_statements(
         ctx.sql(stmts.get(i).unwrap()).await?.collect().await?;
     }
     let df = ctx.sql(stmts.last().unwrap()).await?;
+    let logical_plan_str = df.logical_plan().display_indent().to_string();
 
-    let record_batches = df.collect().await?;
+    let physical_plan = df.create_physical_plan().await?;
+
+    let record_batches = execute_stream(physical_plan.clone(), ctx.task_ctx())?
+        .try_collect::<Vec<_>>()
+        .await?;
 
     let mut columns: Vec<(String, String)> = vec![];
     let mut rows: Vec<Vec<String>> = vec![];
@@ -123,7 +133,20 @@ async fn execute_statements(
         rows.push(vec!["...".to_string(); columns.len()]);
     }
 
-    Ok(SqlResult { columns, rows })
+    Ok(SqlResult {
+        columns,
+        rows,
+        logical_plan: logical_plan_str,
+        physical_plan: display_physical_plan(&physical_plan).unwrap_or_else(|err| err.to_string()),
+    })
+}
+
+fn display_physical_plan(physical_plan: &Arc<dyn ExecutionPlan>) -> Result<String, Error> {
+    let physical_plan_str = displayable(physical_plan.as_ref()).indent(true).to_string();
+    let curr_dir = current_dir()?.display().to_string();
+    let curr_dir = curr_dir.trim_start_matches("/");
+    let physical_plan_str = physical_plan_str.replace(curr_dir, "");
+    Ok(physical_plan_str)
 }
 
 async fn load_parquet_files(base: String, ctx: &SessionContext) -> Result<(), DataFusionError> {
