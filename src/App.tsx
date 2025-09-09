@@ -34,12 +34,12 @@ export default function App () {
   const [rightEditor, setRightEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
 
   useShortcuts(leftEditor, [
-    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, api.execute],
+    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => api.execute(ddlStatement, selectStatement)],
     [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyL, () => rightEditor?.focus()],
   ])
 
   useShortcuts(rightEditor, [
-    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, api.execute],
+    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => api.execute(ddlStatement, selectStatement)],
     [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyH, () => leftEditor?.focus()],
   ])
 
@@ -85,7 +85,7 @@ export default function App () {
             setRightEditor(v)
           }}
           onChange={setSelectStatement}
-          onSubmit={api.execute}
+          onSubmit={() => api.execute(ddlStatement, selectStatement)}
         />
       </div>
       <ResultVisualizer

@@ -2,8 +2,8 @@ import 'react-tooltip/dist/react-tooltip.css'
 import React, { HTMLProps, useState } from 'react';
 import { Tooltip } from 'react-tooltip'
 import { LoadingSpinner } from "@/components/LoadingSpinner";
-import { ApiState } from "@/src/App";
 import { DragHandle } from "@/components/DragHandle";
+import { ApiState } from "@/src/useApi";
 
 export interface ResultVisualizerProps extends HTMLProps<HTMLDivElement> {
   state: ApiState;
@@ -20,7 +20,7 @@ export function ResultVisualizer ({ state, className = '', ...rest }: ResultVisu
       <DragHandle
         className="absolute top-0 left-0 right-0"
         onDrag={delta => setHeight(prev => prev - delta)}
-        direction="vertical" 
+        direction="vertical"
       />
       <div className="h-full overflow-auto -mt-0.5">
         {state.type === 'loading' && (
