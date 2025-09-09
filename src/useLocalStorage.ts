@@ -1,7 +1,12 @@
 import { useState, useRef, useCallback, Dispatch, SetStateAction } from 'react';
 
-export function useLocalStorage<T>(key: string, initialValue: T, debounceMs: number = 200) {
+export function useLocalStorage<T>(key: string, initialValue: T, overWriteValue?: T, debounceMs: number = 200) {
   const [storedValue, setStoredValue] = useState<T>(() => {
+    if (overWriteValue) {
+      window.localStorage.setItem(key, JSON.stringify(initialValue));
+      return overWriteValue
+    }
+
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;

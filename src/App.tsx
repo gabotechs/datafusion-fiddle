@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as monaco from 'monaco-editor'
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
@@ -18,12 +18,15 @@ import { ShortcutsButton } from "@/components/ShortcutsButton";
 import { useShortcuts } from "@/src/useShortcuts";
 import { TablesExplorer } from "@/src/TablesExplorer";
 
-const initSelect: ApiRequest = getReqFromUrl() ?? { statement: INIT_SELECT, distributed: false }
+const URL_REQ = getReqFromUrl()
 
 export default function App () {
   const [vim, setVim] = useLocalStorage('vim-mode', false)
   const api = useApi()
-  const [req, setReq] = useLocalStorage('last-request', initSelect)
+  const [req, setReq] = useLocalStorage<ApiRequest>('last-request', {
+    statement: INIT_SELECT,
+    distributed: false
+  }, URL_REQ)
 
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
 
@@ -114,11 +117,11 @@ function getReqFromUrl (): ApiRequest | undefined {
     if (q == null) return
     const parsed = JSON.parse(atob(q))
     if (
-      'select' in parsed &&
-      typeof parsed.select === 'string'
+      'statement' in parsed &&
+      typeof parsed.statement === 'string'
     ) {
       return {
-        statement: parsed.select,
+        statement: parsed.statement,
         distributed: !!parsed.distributed,
       }
     }
