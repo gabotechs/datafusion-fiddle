@@ -8,7 +8,7 @@
   },
   "functions": {
     "api/**/*.rs": {
-      "runtime": "vercel-rust@4.0.7",
+      "runtime": "vercel-rust@4.0.9",
       "excludeFiles": "{dist,*.cache,node_modules,public,src,target}/**",
       "includeFiles": "api/parquet/**"
     }
