@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as monaco from 'monaco-editor'
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
-import { useApi } from "./useApi";
+import { ApiRequest, useApi } from "./useApi";
 import { PlayButton } from "@/components/PlayButton";
 import { INIT_SELECT } from "./constants";
 import { ResultVisualizer } from "./ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
 import { SqlEditor } from "./SqlEditor";
 import { VimButton } from "@/components/VimButton";
+import { DistributedToggle } from "@/components/DistributedToggle";
 import { useLocalStorage } from "@/src/useLocalStorage";
 import { DataFusionVersion } from "@/components/DataFusionVersion";
 import { GithubLink } from "@/components/GithubLink";
@@ -17,18 +18,20 @@ import { ShortcutsButton } from "@/components/ShortcutsButton";
 import { useShortcuts } from "@/src/useShortcuts";
 import { TablesExplorer } from "@/src/TablesExplorer";
 
-
-const initSelect = getStatementFromUrl() ?? INIT_SELECT
+const URL_REQ = getReqFromUrl()
 
 export default function App () {
   const [vim, setVim] = useLocalStorage('vim-mode', false)
   const api = useApi()
-  const [statement, setStatement] = useLocalStorage('statement', initSelect)
+  const [req, setReq] = useLocalStorage<ApiRequest>('last-request', {
+    statement: INIT_SELECT,
+    distributed: false
+  }, URL_REQ)
 
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
 
   useShortcuts(editor, [
-    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => api.execute(statement)],
+    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => api.execute(req)],
     [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyH, () => editor?.focus()],
   ])
 
@@ -43,12 +46,16 @@ export default function App () {
           <PlayButton
             className={'ml-1'} // ml-1, otherwise it seems too close to the text
             size={HEADER_ICON_SIZE - 2} // -2, otherwise it seems too big
-            onClick={() => api.execute(statement)}
+            onClick={() => api.execute(req)}
             loading={api.state.type === 'loading'}
+          />
+          <DistributedToggle
+            enabled={req.distributed}
+            onToggle={(distributed) => setReq(prev => ({ ...prev, distributed }))}
           />
           <ShareButton
             size={HEADER_ICON_SIZE}
-            getUrl={() => dumpStatementsIntoUrl(statement)}
+            getUrl={() => dumpStatementsIntoUrl(req)}
           />
         </div>
         <div className={"px-4 flex flex-row items-center gap-4"}>
@@ -59,33 +66,33 @@ export default function App () {
         </div>
       </div>
 
-      <PanelGroup direction="vertical" className="flex-grow">
-        <Panel defaultSize={api.state.type === 'nothing' ? 100 : 70} minSize={30}>
-          <PanelGroup direction="horizontal">
+      <PanelGroup direction="vertical" className="flex-grow" autoSaveId="main-layout">
+        <Panel defaultSize={api.state.type === 'nothing' ? 100 : 70} minSize={5}>
+          <PanelGroup direction="horizontal" autoSaveId="editor-layout">
             <Panel defaultSize={25} minSize={15} maxSize={50}>
-              <TablesExplorer className="h-full overflow-auto" />
+              <TablesExplorer className="h-full overflow-auto"/>
             </Panel>
-            <PanelResizeHandle className="w-1.5 bg-secondary-surface hover:bg-blue-900 cursor-col-resize" />
+            <PanelResizeHandle className="w-1.5 bg-secondary-surface hover:bg-blue-900 cursor-col-resize"/>
             <Panel defaultSize={75} minSize={50}>
               <SqlEditor
                 height={'100%'}
                 vim={vim}
                 width={'100%'}
-                value={statement}
+                value={req.statement}
                 onMount={v => {
                   v.focus()
                   setEditor(v)
                 }}
-                onChange={setStatement}
-                onSubmit={() => api.execute(statement)}
+                onChange={(statement) => setReq(prev => ({ ...prev, statement }))}
+                onSubmit={() => api.execute(req)}
               />
             </Panel>
           </PanelGroup>
         </Panel>
         {api.state.type !== 'nothing' && (
           <>
-            <PanelResizeHandle className="h-1.5 w-full bg-secondary-surface hover:bg-blue-900 cursor-row-resize" />
-            <Panel defaultSize={40} minSize={10}>
+            <PanelResizeHandle className="h-1.5 w-full bg-secondary-surface hover:bg-blue-900 cursor-row-resize"/>
+            <Panel defaultSize={40} minSize={10} maxSize={95}>
               <ResultVisualizer
                 className="overflow-auto h-full"
                 state={api.state}
@@ -98,22 +105,25 @@ export default function App () {
   );
 }
 
-function dumpStatementsIntoUrl (select: string): string {
-  const q = btoa(JSON.stringify({ select }))
+function dumpStatementsIntoUrl (req: ApiRequest): string {
+  const q = btoa(JSON.stringify(req))
   return window.location.origin + `?q=${q}`
 }
 
-function getStatementFromUrl (): string | undefined {
+function getReqFromUrl (): ApiRequest | undefined {
   try {
     const urlParams = new URLSearchParams(window.location.search)
     const q = urlParams.get('q')
     if (q == null) return
     const parsed = JSON.parse(atob(q))
     if (
-      'select' in parsed &&
-      typeof parsed.select === 'string'
+      'statement' in parsed &&
+      typeof parsed.statement === 'string'
     ) {
-      return parsed.select
+      return {
+        statement: parsed.statement,
+        distributed: !!parsed.distributed,
+      }
     }
   } catch (error) {
     // this is fine

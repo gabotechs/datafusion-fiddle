@@ -35,7 +35,10 @@ export const TablesProvider: React.FC<TablesProviderProps> = ({ children }) => {
   const [state, setState] = useState<TablesContextType>({ type: 'loading' });
 
   React.useEffect(() => {
-    api.execute("SELECT table_name, column_name, data_type FROM information_schema.columns")
+    api.execute({
+      statement: "SELECT table_name, column_name, data_type FROM information_schema.columns",
+      distributed: false
+    })
       .then(res => {
         switch (res.type) {
           case 'result':
