@@ -3,7 +3,7 @@ import * as monaco from 'monaco-editor'
 
 import { useApi } from "./useApi";
 import { PlayButton } from "@/components/PlayButton";
-import { INIT_DDL, INIT_SELECT } from "./constants";
+import { INIT_SELECT } from "./constants";
 import { ResultVisualizer } from "./ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
 import { SqlEditor } from "./SqlEditor";
@@ -19,28 +19,22 @@ import { useShortcuts } from "@/src/useShortcuts";
 import { TablesExplorer } from "@/src/TablesExplorer";
 
 
-const [initDdl = INIT_DDL, initSelect = INIT_SELECT] = getStatementsFromUrl()
+const initSelect = getStatementFromUrl() ?? INIT_SELECT
 
 export default function App () {
   const [vim, setVim] = useLocalStorage('vim-mode', false)
   const api = useApi()
-  const [ddlStatement, setDdlStatement] = useLocalStorage('ddl-statement', initDdl)
-  const [selectStatement, setSelectStatement] = useLocalStorage('select-statement', initSelect)
+  const [statement, setStatement] = useLocalStorage('statement', initSelect)
 
   const screenWidth = useScreenWidth() ?? 0
-  const [midBarPosition, setMidBarPosition] = useLocalStorage('mid-bar-position', screenWidth / 4);
+  const [horizontalBarPos, setHorizontalBarPos] = useLocalStorage('horizontal-bar-position', screenWidth / 4);
+  const [verticalBarPos, setVerticalBarPos] = useLocalStorage('vertical-bar-position', 300);
 
-  const [leftEditor, setLeftEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
-  const [rightEditor, setRightEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
+  const [editor, setRightEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
 
-  useShortcuts(leftEditor, [
-    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => api.execute(ddlStatement, selectStatement)],
-    [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyL, () => rightEditor?.focus()],
-  ])
-
-  useShortcuts(rightEditor, [
-    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => api.execute(ddlStatement, selectStatement)],
-    [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyH, () => leftEditor?.focus()],
+  useShortcuts(editor, [
+    [monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => api.execute(statement)],
+    [monaco.KeyMod.WinCtrl | monaco.KeyCode.KeyH, () => editor?.focus()],
   ])
 
   const HEADER_ICON_SIZE = 24
@@ -54,12 +48,12 @@ export default function App () {
           <PlayButton
             className={'ml-1'} // ml-1, otherwise it seems too close to the text
             size={HEADER_ICON_SIZE - 2} // -2, otherwise it seems too big
-            onClick={() => api.execute(ddlStatement, selectStatement)}
+            onClick={() => api.execute(statement)}
             loading={api.state.type === 'loading'}
           />
           <ShareButton
             size={HEADER_ICON_SIZE}
-            getUrl={() => dumpStatementsIntoUrl(ddlStatement, selectStatement)}
+            getUrl={() => dumpStatementsIntoUrl(statement)}
           />
         </div>
         <div className={"px-4 flex flex-row items-center gap-4"}>
@@ -69,55 +63,57 @@ export default function App () {
           <DataFusionVersion/>
         </div>
       </div>
-      <div className={"flex flex-row flex-grow min-h-0"}>
-        <TablesExplorer style={{
-          height: "100%",
-          width: screenWidth ? (screenWidth / 2 - 2 - midBarPosition) : '50%'
-        }}/>
-        <DragHandle onDrag={delta => setMidBarPosition(prev => prev - delta)} direction="horizontal"/>
-        <SqlEditor
-          height={'100%'}
-          vim={vim}
-          width={screenWidth ? (screenWidth / 2 - 2 + midBarPosition) : '50%'}
-          value={selectStatement}
-          onMount={v => {
-            v.focus() // focus the right editor on mount
-            setRightEditor(v)
-          }}
-          onChange={setSelectStatement}
-          onSubmit={() => api.execute(ddlStatement, selectStatement)}
+      <div className={"flex flex-col flex-grow min-h-0"}>
+        <div className={"flex flex-row flex-grow min-h-0"}>
+          <TablesExplorer style={{
+            height: "100%",
+            width: screenWidth ? (screenWidth / 2 - 2 - horizontalBarPos) : '50%'
+          }}/>
+          <DragHandle onDrag={delta => setHorizontalBarPos(prev => prev - delta)} direction="horizontal"/>
+          <SqlEditor
+            height={'100%'}
+            vim={vim}
+            width={screenWidth ? (screenWidth / 2 - 2 + horizontalBarPos) : '50%'}
+            value={statement}
+            onMount={v => {
+              v.focus() // focus the right editor on mount
+              setRightEditor(v)
+            }}
+            onChange={setStatement}
+            onSubmit={() => api.execute(statement)}
+          />
+        </div>
+        <DragHandle onDrag={delta => setVerticalBarPos(prev => prev - delta)} direction="vertical"/>
+        <ResultVisualizer
+          className={`overflow-auto`}
+          style={{ height: verticalBarPos }}
+          state={api.state}
         />
       </div>
-      <ResultVisualizer
-        className={`overflow-auto`}
-        state={api.state}
-      />
     </main>
   );
 }
 
-function dumpStatementsIntoUrl (ddl: string, select: string): string {
-  const q = btoa(JSON.stringify({ ddl, select }))
+function dumpStatementsIntoUrl (select: string): string {
+  const q = btoa(JSON.stringify({ select }))
   return window.location.origin + `?q=${q}`
 }
 
-function getStatementsFromUrl (): [string | undefined, string | undefined] {
+function getStatementFromUrl (): string | undefined {
   try {
     const urlParams = new URLSearchParams(window.location.search)
     const q = urlParams.get('q')
-    if (q == null) return [undefined, undefined]
+    if (q == null) return
     const parsed = JSON.parse(atob(q))
     if (
-      'ddl' in parsed &&
       'select' in parsed &&
-      typeof parsed.ddl === 'string' &&
       typeof parsed.select === 'string'
     ) {
-      return [parsed.ddl, parsed.select]
+      return parsed.select
     }
   } catch (error) {
     // this is fine
   }
-  return [undefined, undefined]
+  return
 }
 
