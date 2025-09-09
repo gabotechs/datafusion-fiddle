@@ -66,9 +66,9 @@ export default function App () {
         </div>
       </div>
 
-      <PanelGroup direction="vertical" className="flex-grow">
-        <Panel defaultSize={api.state.type === 'nothing' ? 100 : 70} minSize={30}>
-          <PanelGroup direction="horizontal">
+      <PanelGroup direction="vertical" className="flex-grow" autoSaveId="main-layout">
+        <Panel defaultSize={api.state.type === 'nothing' ? 100 : 70} minSize={5}>
+          <PanelGroup direction="horizontal" autoSaveId="editor-layout">
             <Panel defaultSize={25} minSize={15} maxSize={50}>
               <TablesExplorer className="h-full overflow-auto"/>
             </Panel>
@@ -92,7 +92,7 @@ export default function App () {
         {api.state.type !== 'nothing' && (
           <>
             <PanelResizeHandle className="h-1.5 w-full bg-secondary-surface hover:bg-blue-900 cursor-row-resize"/>
-            <Panel defaultSize={40} minSize={10}>
+            <Panel defaultSize={40} minSize={10} maxSize={95}>
               <ResultVisualizer
                 className="overflow-auto h-full"
                 state={api.state}
