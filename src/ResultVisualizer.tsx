@@ -69,10 +69,16 @@ const SqlResponseVisualizer = React.memo(
             Physical Plan
           </Tabs.Trigger>
           <Tabs.Trigger
+            value="graphviz_svg"
+            className="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-text-secondary hover:text-text-primary hover:bg-secondary-surface transition-colors data-[state=active]:border-accent data-[state=active]:text-text-primary data-[state=active]:bg-secondary-surface cursor-pointer"
+          >
+            Graphviz Physical Plan SVG
+          </Tabs.Trigger>
+          <Tabs.Trigger
             value="graphviz"
             className="px-4 py-2 font-medium text-sm border-b-2 border-transparent text-text-secondary hover:text-text-primary hover:bg-secondary-surface transition-colors data-[state=active]:border-accent data-[state=active]:text-text-primary data-[state=active]:bg-secondary-surface cursor-pointer"
           >
-            Graphviz Physical Plan
+            Graphviz Physical Plan DOT
           </Tabs.Trigger>
         </Tabs.List>
 
@@ -154,8 +160,19 @@ const SqlResponseVisualizer = React.memo(
             {result.physical_plan}
           </SyntaxHighlighter>
         </Tabs.Content>
+        <Tabs.Content
+          value="graphviz_svg"
+          className="flex-1 overflow-auto px-2"
+        >
+          <div dangerouslySetInnerHTML={{ __html: result.graphviz_svg }} />
+        </Tabs.Content>
         <Tabs.Content value="graphviz" className="flex-1 overflow-auto px-2">
-          <div dangerouslySetInnerHTML={{ __html: result.graphviz_plan }} />
+          <span
+            className="text-text-secondary"
+            style={{ whiteSpace: "pre-wrap" }}
+          >
+            {result.graphviz}
+          </span>
         </Tabs.Content>
       </Tabs.Root>
     );

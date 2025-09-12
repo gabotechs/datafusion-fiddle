@@ -152,6 +152,9 @@ struct SqlResult {
     rows: Vec<Vec<String>>,
     logical_plan: String,
     physical_plan: String,
+    // if the plan is distributed, this contains the graphviz representation in dot format
+    graphviz: String,
+    // if the plan is distributed, this will be replaced browserside, with the svg html of the graphviz plan
     graphviz_plan: String,
 }
 
@@ -169,9 +172,7 @@ async fn execute_statements(
     if distributed {
         let mut cfg = cfg.with_target_partitions(4); // 4 partitions such that we have concurrency
                                                      // but not too many partitions to make understanding
-                                                     // distributed plans challenging
-
-        // Disable single partition joins to better showcase distributed plans
+                                                     // Disable single partition joins to better showcase distributed plans
         cfg = cfg.set_str(
             "datafusion.optimizer.hash_join_single_partition_threshold",
             "0",
@@ -240,7 +241,7 @@ async fn execute_statements(
 
     let physical_plan_str =
         display_physical_plan(&physical_plan).unwrap_or_else(|err| err.to_string());
-    let graphviz_plan_str = if distributed {
+    let graphviz_str = if distributed {
         display_graphviz_plan(&physical_plan).unwrap_or_else(|err| err.to_string())
     } else {
         "".to_owned()
@@ -251,7 +252,8 @@ async fn execute_statements(
         rows,
         logical_plan: logical_plan_str,
         physical_plan: physical_plan_str,
-        graphviz_plan: graphviz_plan_str,
+        graphviz_plan: "".to_owned(),
+        graphviz: graphviz_str,
     })
 }
 

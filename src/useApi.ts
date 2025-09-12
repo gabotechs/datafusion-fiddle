@@ -11,7 +11,8 @@ export interface SqlResponse {
   rows: Array<Array<string>>;
   logical_plan: string;
   physical_plan: string;
-  graphviz_plan: string;
+  graphviz_svg: string;
+  graphviz: string;
 }
 
 export async function executeStatements(
@@ -63,12 +64,11 @@ export function useApi() {
         req.distributed,
       );
 
-      if (result.graphviz_plan.length > 0) {
+      if (result.graphviz.length > 0) {
         const viz = await Viz.instance();
         try {
-          const graphviz_plan = viz.renderSVGElement(result.graphviz_plan);
-          console.log("graphviz_plan", graphviz_plan);
-          result.graphviz_plan = graphviz_plan.outerHTML;
+          const svg = viz.renderSVGElement(result.graphviz);
+          result.graphviz_svg = svg.outerHTML;
         } catch (e) {
           console.error("failed to render graphviz plan", e);
         }
