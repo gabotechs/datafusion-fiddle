@@ -7,7 +7,7 @@ use datafusion::execution::SessionStateBuilder;
 use datafusion::physical_plan::{displayable, execute_stream, ExecutionPlan};
 use datafusion::prelude::{ParquetReadOptions, SessionConfig, SessionContext};
 use datafusion_distributed::{
-    display_stage_graphviz, ArrowFlightEndpoint, BoxCloneSyncChannel, ChannelResolver,
+    display_plan_graphviz, ArrowFlightEndpoint, BoxCloneSyncChannel, ChannelResolver,
     DistributedExt, DistributedPhysicalOptimizerRule, DistributedSessionBuilderContext,
 };
 use futures::TryStreamExt;
@@ -241,11 +241,8 @@ async fn execute_statements(
 
     let physical_plan_str =
         display_physical_plan(&physical_plan).unwrap_or_else(|err| err.to_string());
-    let graphviz_str = if distributed {
-        display_graphviz_plan(&physical_plan).unwrap_or_else(|err| err.to_string())
-    } else {
-        "".to_owned()
-    };
+    let graphviz_str = 
+        display_graphviz_plan(&physical_plan).unwrap_or_else(|err| err.to_string());
 
     Ok(SqlResult {
         columns,
@@ -266,7 +263,7 @@ fn display_physical_plan(physical_plan: &Arc<dyn ExecutionPlan>) -> Result<Strin
 }
 
 fn display_graphviz_plan(physical_plan: &Arc<dyn ExecutionPlan>) -> Result<String, Error> {
-    let graphviz_plan_str = display_stage_graphviz(physical_plan.clone())?;
+    let graphviz_plan_str = display_plan_graphviz(physical_plan.clone())?;
     Ok(graphviz_plan_str)
 }
 
