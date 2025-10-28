@@ -1,14 +1,16 @@
+use arrow_flight::flight_service_client::FlightServiceClient;
 use arrow_flight::flight_service_server::FlightServiceServer;
 use async_trait::async_trait;
 use datafusion::arrow::error::ArrowError;
 use datafusion::arrow::util::display::{ArrayFormatter, FormatOptions};
 use datafusion::error::DataFusionError;
 use datafusion::execution::SessionStateBuilder;
-use datafusion::physical_plan::{displayable, execute_stream, ExecutionPlan};
+use datafusion::physical_plan::{execute_stream, ExecutionPlan};
 use datafusion::prelude::{ParquetReadOptions, SessionConfig, SessionContext};
 use datafusion_distributed::{
-    ArrowFlightEndpoint, BoxCloneSyncChannel, ChannelResolver, DistributedExt,
-    DistributedPhysicalOptimizerRule, DistributedSessionBuilderContext,
+    display_plan_ascii, ArrowFlightEndpoint, BoxCloneSyncChannel, ChannelResolver,
+    DistributedConfig, DistributedExt, DistributedPhysicalOptimizerRule,
+    DistributedSessionBuilderContext,
 };
 use futures::TryStreamExt;
 use hyper_util::rt::TokioIo;
@@ -19,6 +21,7 @@ use std::fmt::Display;
 use std::fs;
 use std::sync::{Arc, LazyLock};
 use tonic::transport::{Endpoint, Server};
+use url::Url;
 use vercel_runtime::{run, Body, Error, Request, RequestPayloadExt, Response, StatusCode};
 
 const MAX_RESULTS: usize = 500;
@@ -75,15 +78,15 @@ impl InMemoryChannelResolver {
 
 #[async_trait]
 impl ChannelResolver for InMemoryChannelResolver {
-    fn get_urls(&self) -> Result<Vec<url::Url>, DataFusionError> {
-        Ok(vec![url::Url::parse(DUMMY_URL).unwrap()])
+    fn get_urls(&self) -> Result<Vec<Url>, DataFusionError> {
+        Ok(vec![Url::parse(DUMMY_URL).unwrap()])
     }
 
-    async fn get_channel_for_url(
+    async fn get_flight_client_for_url(
         &self,
-        _: &url::Url,
-    ) -> Result<BoxCloneSyncChannel, DataFusionError> {
-        Ok(self.channel.clone())
+        _: &Url,
+    ) -> Result<FlightServiceClient<BoxCloneSyncChannel>, DataFusionError> {
+        Ok(FlightServiceClient::new(self.channel.clone()))
     }
 }
 
@@ -97,7 +100,6 @@ async fn main() -> Result<(), Error> {
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 struct SqlRequest {
-    distributed: bool,
     stmts: Vec<String>,
 }
 
@@ -107,7 +109,7 @@ pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
         None => return throw_error("No sql request was passed", None, StatusCode::BAD_REQUEST),
     };
 
-    let res = match execute_statements(req.stmts, "api/parquet", req.distributed).await {
+    let res = match execute_statements(req.stmts, "api/parquet").await {
         Ok(res) => res,
         Err(err) => {
             return throw_error(
@@ -157,22 +159,17 @@ struct SqlResult {
 async fn execute_statements(
     stmts: Vec<String>,
     path: impl Display,
-    distributed: bool,
 ) -> datafusion::error::Result<SqlResult> {
     let options = FormatOptions::default().with_display_error(true);
     let cfg = SessionConfig::new().with_information_schema(true);
 
     let mut builder = SessionStateBuilder::new()
         .with_default_features()
-        .with_config(cfg);
-    if distributed {
-        builder = builder
-            .with_physical_optimizer_rule(Arc::new(
-                DistributedPhysicalOptimizerRule::default()
-                    .with_network_shuffle_tasks(4)
-                    .with_network_coalesce_tasks(4),
-            ))
-            .with_distributed_channel_resolver(CHANNEL_RESOLVER.clone());
+        .with_config(cfg)
+        .with_physical_optimizer_rule(Arc::new(DistributedPhysicalOptimizerRule))
+        .with_distributed_channel_resolver(CHANNEL_RESOLVER.clone());
+    if stmts.iter().any(|v| v.contains("distributed.")) {
+        builder = builder.with_distributed_option_extension(DistributedConfig::default())?;
     }
     let ctx = Arc::new(SessionContext::new_with_state(builder.build()));
     load_parquet_files(path.to_string(), &ctx).await?;
@@ -233,7 +230,7 @@ async fn execute_statements(
 }
 
 fn display_physical_plan(physical_plan: &Arc<dyn ExecutionPlan>) -> Result<String, Error> {
-    let physical_plan_str = displayable(physical_plan.as_ref()).indent(true).to_string();
+    let physical_plan_str = display_plan_ascii(physical_plan.as_ref(), false);
     let curr_dir = current_dir()?.display().to_string();
     let curr_dir = curr_dir.trim_start_matches("/");
     let physical_plan_str = physical_plan_str.replace(curr_dir, "");
@@ -271,7 +268,6 @@ mod tests {
                 "SELECT * FROM book".to_string(),
             ],
             format!("{}/api/parquet", env!("CARGO_MANIFEST_DIR")),
-            false,
         )
         .await?;
 
@@ -290,7 +286,6 @@ mod tests {
         let result = execute_statements(
             vec!["SELECT * FROM weather LIMIT 10".to_string()],
             format!("{}/api/parquet", env!("CARGO_MANIFEST_DIR")),
-            false,
         )
         .await?;
 
@@ -326,7 +321,10 @@ mod tests {
     async fn test_distributed() -> datafusion::error::Result<()> {
         let result = execute_statements(
             // TPCH 17
-            vec![r#"
+            vec![
+                "SET distributed.network_coalesce_tasks = 2;".into(),
+                "SET distributed.network_shuffle_tasks = 2;".into(),
+                r#"
 select
         sum(l_extendedprice) / 7.0 as avg_yearly
 from
@@ -345,14 +343,14 @@ where
             l_partkey = p_partkey
 );
             "#
-            .to_string()],
+                .into(),
+            ],
             format!("{}/api/parquet", env!("CARGO_MANIFEST_DIR")),
-            true,
         )
         .await?;
 
         insta::assert_snapshot!(result.physical_plan, @r"
-        ┌───── Stage 3   Tasks: t0:[p0] 
+        ┌───── DistributedExec ── Tasks: t0:[p0] 
         │ ProjectionExec: expr=[CAST(sum(lineitem.l_extendedprice)@0 AS Float64) / 7 as avg_yearly]
         │   AggregateExec: mode=Final, gby=[], aggr=[sum(lineitem.l_extendedprice)]
         │     CoalescePartitionsExec
@@ -364,25 +362,25 @@ where
         │                 CoalesceBatchesExec: target_batch_size=8192
         │                   HashJoinExec: mode=CollectLeft, join_type=Inner, on=[(p_partkey@0, l_partkey@0)], projection=[p_partkey@0, l_quantity@2, l_extendedprice@3]
         │                     CoalescePartitionsExec
-        │                       NetworkCoalesceExec read_from=Stage 1, output_partitions=64, input_tasks=4
-        │                     DataSourceExec: file_groups={4 groups: [[/api/parquet/lineitem/1.parquet], [/api/parquet/lineitem/2.parquet], [/api/parquet/lineitem/3.parquet], [/api/parquet/lineitem/4.parquet]]}, projection=[l_partkey, l_quantity, l_extendedprice], file_type=parquet
+        │                       [Stage 1] => NetworkCoalesceExec: output_partitions=32, input_tasks=2
+        │                     DataSourceExec: file_groups={4 groups: [[/api/parquet/lineitem/1.parquet], [/api/parquet/lineitem/2.parquet], [/api/parquet/lineitem/3.parquet], [/api/parquet/lineitem/4.parquet]]}, projection=[l_partkey, l_quantity, l_extendedprice], file_type=parquet, predicate=DynamicFilterPhysicalExpr [ true ]
         │             ProjectionExec: expr=[CAST(0.2 * CAST(avg(lineitem.l_quantity)@1 AS Float64) AS Decimal128(30, 15)) as Float64(0.2) * avg(lineitem.l_quantity), l_partkey@0 as l_partkey]
         │               AggregateExec: mode=FinalPartitioned, gby=[l_partkey@0 as l_partkey], aggr=[avg(lineitem.l_quantity)]
         │                 CoalesceBatchesExec: target_batch_size=8192
-        │                   NetworkShuffleExec read_from=Stage 2, output_partitions=16, n_tasks=1, input_tasks=4
+        │                   [Stage 2] => NetworkShuffleExec: output_partitions=16, input_tasks=2
         └──────────────────────────────────────────────────
-          ┌───── Stage 1   Tasks: t0:[p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15] t1:[p16,p17,p18,p19,p20,p21,p22,p23,p24,p25,p26,p27,p28,p29,p30,p31] t2:[p32,p33,p34,p35,p36,p37,p38,p39,p40,p41,p42,p43,p44,p45,p46,p47] t3:[p48,p49,p50,p51,p52,p53,p54,p55,p56,p57,p58,p59,p60,p61,p62,p63] 
+          ┌───── Stage 1 ── Tasks: t0:[p0..p15] t1:[p16..p31] 
           │ CoalesceBatchesExec: target_batch_size=8192
           │   FilterExec: p_brand@1 = Brand#23 AND p_container@2 = MED BOX, projection=[p_partkey@0]
-          │     RepartitionExec: partitioning=RoundRobinBatch(16), input_partitions=1
-          │       PartitionIsolatorExec Tasks: t0:[p0,__,__,__] t1:[__,p0,__,__] t2:[__,__,p0,__] t3:[__,__,__,p0] 
+          │     RepartitionExec: partitioning=RoundRobinBatch(16), input_partitions=2
+          │       PartitionIsolatorExec: t0:[p0,p1,__,__] t1:[__,__,p0,p1] 
           │         DataSourceExec: file_groups={4 groups: [[/api/parquet/part/1.parquet], [/api/parquet/part/2.parquet], [/api/parquet/part/3.parquet], [/api/parquet/part/4.parquet]]}, projection=[p_partkey, p_brand, p_container], file_type=parquet, predicate=p_brand@1 = Brand#23 AND p_container@2 = MED BOX, pruning_predicate=p_brand_null_count@2 != row_count@3 AND p_brand_min@0 <= Brand#23 AND Brand#23 <= p_brand_max@1 AND p_container_null_count@6 != row_count@3 AND p_container_min@4 <= MED BOX AND MED BOX <= p_container_max@5, required_guarantees=[p_brand in (Brand#23), p_container in (MED BOX)]
           └──────────────────────────────────────────────────
-          ┌───── Stage 2   Tasks: t0:[p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15] t1:[p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15] t2:[p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15] t3:[p0,p1,p2,p3,p4,p5,p6,p7,p8,p9,p10,p11,p12,p13,p14,p15] 
+          ┌───── Stage 2 ── Tasks: t0:[p0..p15] t1:[p0..p15] 
           │ RepartitionExec: partitioning=Hash([l_partkey@0], 16), input_partitions=16
-          │   RepartitionExec: partitioning=RoundRobinBatch(16), input_partitions=1
+          │   RepartitionExec: partitioning=RoundRobinBatch(16), input_partitions=2
           │     AggregateExec: mode=Partial, gby=[l_partkey@0 as l_partkey], aggr=[avg(lineitem.l_quantity)]
-          │       PartitionIsolatorExec Tasks: t0:[p0,__,__,__] t1:[__,p0,__,__] t2:[__,__,p0,__] t3:[__,__,__,p0] 
+          │       PartitionIsolatorExec: t0:[p0,p1,__,__] t1:[__,__,p0,p1] 
           │         DataSourceExec: file_groups={4 groups: [[/api/parquet/lineitem/1.parquet], [/api/parquet/lineitem/2.parquet], [/api/parquet/lineitem/3.parquet], [/api/parquet/lineitem/4.parquet]]}, projection=[l_partkey, l_quantity], file_type=parquet
           └──────────────────────────────────────────────────
         ");
