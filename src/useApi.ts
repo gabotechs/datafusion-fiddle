@@ -44,7 +44,6 @@ export type ApiState =
 
 export interface ApiRequest {
   statement: string
-  distributed: boolean
 }
 
 export function useApi () {

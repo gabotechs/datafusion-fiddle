@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import * as monaco from 'monaco-editor'
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 
@@ -9,7 +9,6 @@ import { ResultVisualizer } from "./ResultVisualizer";
 import { ShareButton } from "@/components/ShareButton";
 import { SqlEditor } from "./SqlEditor";
 import { VimButton } from "@/components/VimButton";
-import { DistributedToggle } from "@/components/DistributedToggle";
 import { useLocalStorage } from "@/src/useLocalStorage";
 import { DataFusionVersion } from "@/components/DataFusionVersion";
 import { GithubLink } from "@/components/GithubLink";
@@ -25,7 +24,6 @@ export default function App () {
   const api = useApi()
   const [req, setReq] = useLocalStorage<ApiRequest>('last-request', {
     statement: INIT_SELECT,
-    distributed: false
   }, URL_REQ)
 
   const [editor, setEditor] = useState<monaco.editor.IStandaloneCodeEditor>()
@@ -48,10 +46,6 @@ export default function App () {
             size={HEADER_ICON_SIZE - 2} // -2, otherwise it seems too big
             onClick={() => api.execute(req)}
             loading={api.state.type === 'loading'}
-          />
-          <DistributedToggle
-            enabled={req.distributed}
-            onToggle={(distributed) => setReq(prev => ({ ...prev, distributed }))}
           />
           <ShareButton
             size={HEADER_ICON_SIZE}
@@ -122,7 +116,6 @@ function getReqFromUrl (): ApiRequest | undefined {
     ) {
       return {
         statement: parsed.statement,
-        distributed: !!parsed.distributed,
       }
     }
   } catch (error) {

@@ -31,11 +31,11 @@ const tableRe = /\bcreate\s+table\s+([a-zA-Z_][a-zA-Z0-9_]+)\b/gi
 const columnRe = /^ +([a-zA-Z_][a-zA-Z0-9_]+)\s+/gm
 
 // Helper function to quote SQL identifiers if needed
-function quoteIdentifierIfNeeded(identifier: string): string {
+function quoteIdentifierIfNeeded (identifier: string): string {
   // Check if identifier is a normal identifier (lowercase letters, numbers, underscore)
   // and doesn't start with a number
   const normalIdentifierRe = /^[a-z_][a-z0-9_]*$/;
-  
+
   if (normalIdentifierRe.test(identifier)) {
     return identifier;
   } else {
@@ -48,7 +48,7 @@ const TABLES: Table[] = []
 
 setupLanguageFeatures(LanguageIdEnum.PG, {
   completionItems: {
-    completionService: async (model, __, ___, suggestions) => {
+    completionService: async (model, pos, ___, suggestions) => {
       if (!suggestions) {
         return [];
       }
@@ -62,6 +62,29 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
       }));
 
       let syntaxCompletionItems: ICompletionItem[] = [];
+
+      const line = model.getLineContent(pos.lineNumber)
+      if (["SET ", "set "].includes(line)) {
+        syntaxCompletionItems.push({
+          label: "distributed",
+          kind: languages.CompletionItemKind.Constant,
+          detail: '',
+          sortText: '1_distributed'
+        })
+      } else if (["SET distributed.", "set distributed."].includes(line)) {
+        syntaxCompletionItems.push({
+          label: "network_coalesce_tasks = ",
+          kind: languages.CompletionItemKind.Constant,
+          detail: '',
+          sortText: '1_network_coalesce_tasks'
+        })
+        syntaxCompletionItems.push({
+          label: "network_shuffle_tasks = ",
+          kind: languages.CompletionItemKind.Constant,
+          detail: '',
+          sortText: '1_network_shuffle_tasks'
+        })
+      }
 
       syntax.forEach((item) => {
         let completions
