@@ -73,16 +73,16 @@ setupLanguageFeatures(LanguageIdEnum.PG, {
         })
       } else if (["SET distributed.", "set distributed."].includes(line)) {
         syntaxCompletionItems.push({
-          label: "network_coalesce_tasks = ",
+          label: "files_per_task = ",
           kind: languages.CompletionItemKind.Constant,
           detail: '',
-          sortText: '1_network_coalesce_tasks'
+          sortText: '1_files_per_task'
         })
         syntaxCompletionItems.push({
-          label: "network_shuffle_tasks = ",
+          label: "cardinality_task_count_factor = ",
           kind: languages.CompletionItemKind.Constant,
           detail: '',
-          sortText: '1_network_shuffle_tasks'
+          sortText: '1_cardinality_task_count_factor'
         })
       }
 
