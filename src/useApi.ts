@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 
 export interface SqlRequest {
   stmts: string[]
-  distributed: boolean
 }
 
 export interface SqlResponse {
@@ -12,10 +11,9 @@ export interface SqlResponse {
   physical_plan: string
 }
 
-export async function executeStatements (stmts: string[], distributed: boolean): Promise<SqlResponse> {
+export async function executeStatements (stmts: string[]): Promise<SqlResponse> {
   const req: SqlRequest = {
     stmts,
-    distributed
   }
   const res = await fetch(
     '/api/main',
@@ -53,7 +51,6 @@ export function useApi () {
     setState({ type: 'loading' });
     const result = await executeStatements(
       req.statement.split(';').map(_ => _.trim()).filter(_ => _.length > 0),
-      req.distributed
     )
       .then((result) => ({ type: 'result' as const, result }))
       .catch((err) => ({ type: 'error' as const, message: err.toString() }));
