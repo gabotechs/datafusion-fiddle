@@ -12,7 +12,6 @@ use datafusion_distributed::{
     DistributedPhysicalOptimizerRule, DistributedSessionBuilderContext,
 };
 use futures::TryStreamExt;
-use http_body_util::BodyExt;
 use hyper_util::rt::TokioIo;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -20,10 +19,9 @@ use std::env::current_dir;
 use std::fmt::Display;
 use std::fs;
 use std::sync::{Arc, LazyLock};
-use tonic::codegen::http::StatusCode;
 use tonic::transport::{Endpoint, Server};
 use url::Url;
-use vercel_runtime::{run, AppState, Error, Request, Response, ResponseBody};
+use vercel_runtime::{run, Body, Error, Request, RequestPayloadExt, Response, StatusCode};
 
 const MAX_RESULTS: usize = 500;
 
@@ -96,7 +94,7 @@ static CHANNEL_RESOLVER: LazyLock<InMemoryChannelResolver> =
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    run(tower::service_fn(handler)).await
+    run(handler).await
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -104,10 +102,11 @@ struct SqlRequest {
     stmts: Vec<String>,
 }
 
-pub async fn handler((_state, req): (AppState, Request)) -> Result<Response<ResponseBody>, Error> {
-    let body = req.into_body();
-    let body_bytes = body.collect().await?.to_bytes();
-    let req: SqlRequest = serde_json::from_slice(&body_bytes)?;
+pub async fn handler(req: Request) -> Result<Response<Body>, Error> {
+    let req = match req.payload::<SqlRequest>()? {
+        Some(req) => req,
+        None => return throw_error("No sql request was passed", None, StatusCode::BAD_REQUEST),
+    };
 
     let res = match execute_statements(req.stmts, "api/parquet").await {
         Ok(res) => res,
@@ -137,7 +136,7 @@ pub fn throw_error(
     message: &str,
     error: Option<Error>,
     status_code: StatusCode,
-) -> Result<Response<ResponseBody>, Error> {
+) -> Result<Response<Body>, Error> {
     if let Some(error) = error {
         eprintln!("error: {error}");
     }
