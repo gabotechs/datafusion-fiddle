@@ -934,9 +934,9 @@ dependencies = [
 
 [[package]]
 name = "datafusion-distributed"
-version = "2.0.0"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5467bab3520c7641427f723f6df70ebad684aef934e66d0a55a08aeabf95b9f7"
+checksum = "c0e671214b022ef27aa3ec502088f4ead6bb5586b309ff76eb60818b36362d97"
 dependencies = [
  "arrow-flight",
  "arrow-ipc",
@@ -954,6 +954,7 @@ dependencies = [
  "http",
  "itertools",
  "moka",
+ "num-traits",
  "object_store",
  "pin-project",
  "prost",

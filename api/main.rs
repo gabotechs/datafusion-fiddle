@@ -6,8 +6,8 @@ use datafusion::execution::SessionStateBuilder;
 use datafusion::physical_plan::{execute_stream, ExecutionPlan};
 use datafusion::prelude::{ParquetReadOptions, SessionConfig, SessionContext};
 use datafusion_distributed::{
-    create_worker_client, display_plan_ascii, BoxCloneSyncChannel, ChannelResolver, DistributedExt,
-    SessionStateBuilderExt, Worker, WorkerQueryContext, WorkerResolver, WorkerServiceClient,
+    display_plan_ascii, grpc, ChannelResolver, DistributedExt, SessionStateBuilderExt, Worker,
+    WorkerChannel, WorkerQueryContext, WorkerResolver,
 };
 use futures::TryStreamExt;
 use http_body_util::BodyExt;
@@ -31,7 +31,7 @@ struct InMemoryWorkerResolver;
 
 #[derive(Clone)]
 struct InMemoryChannelResolver {
-    channel: BoxCloneSyncChannel,
+    channel: grpc::BoxCloneSyncChannel,
 }
 
 impl InMemoryChannelResolver {
@@ -49,7 +49,7 @@ impl InMemoryChannelResolver {
             }));
 
         let this = Self {
-            channel: BoxCloneSyncChannel::new(channel),
+            channel: grpc::BoxCloneSyncChannel::new(channel),
         };
         let this_clone = this.clone();
 
@@ -83,8 +83,8 @@ impl ChannelResolver for InMemoryChannelResolver {
     async fn get_worker_client_for_url(
         &self,
         _: &Url,
-    ) -> Result<WorkerServiceClient<BoxCloneSyncChannel>, DataFusionError> {
-        Ok(create_worker_client(self.channel.clone()))
+    ) -> Result<Box<dyn WorkerChannel>, DataFusionError> {
+        Ok(grpc::create_worker_client(self.channel.clone()))
     }
 }
 
