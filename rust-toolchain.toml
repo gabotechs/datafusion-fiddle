@@ -1,0 +1,4 @@
+[toolchain]
+# DataFusion 55 requires rustc >= 1.94, but Vercel's build image ships an older
+# toolchain. Pinning it here makes rustup install the right one at build time.
+channel = "1.94"
